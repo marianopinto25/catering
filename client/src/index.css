@@ -1,15 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --bg-color: #FAFAFA;
-  --surface-color: #FFFFFF;
-  --text-main: #111111;
-  --text-muted: #666666;
-  --border-color: #E0E0E0;
   --primary-color: #000000;
-  --primary-hover: #333333;
-  --danger-color: #E53935;
-  --danger-hover: #C62828;
-  --radius: 8px;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --secondary-color: #ffffff;
+  --accent-color: #6366f1;
+  --bg-color: #f8fafc;
+  --sidebar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --danger-color: #ef4444;
+  --success-color: #22c55e;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 * {
@@ -19,129 +26,158 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-color);
-  color: var(--text-main);
+  color: var(--text-primary);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-a {
-  text-decoration: none;
-  color: inherit;
+h1, h2, h3, h4 {
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  outline: none;
-  font-family: inherit;
+/* Layout */
+.app-container {
+  display: flex;
+  min-height: 100vh;
 }
 
-/* Utils */
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Botones */
 .btn-primary {
-  background-color: var(--primary-color);
-  color: #FFF;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-danger {
-  background-color: transparent;
-  color: var(--danger-color);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  font-weight: 500;
-  transition: background-color 0.2s;
-  border: 1px solid var(--danger-color);
-}
-
-.btn-danger:hover {
-  background-color: var(--danger-color);
-  color: #FFF;
+  background: #1e293b;
+  transform: scale(1.02);
 }
 
 .btn-secondary {
-  background-color: transparent;
-  color: var(--text-main);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  font-weight: 500;
+  background: transparent;
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
-  transition: background-color 0.2s;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background-color: #F0F0F0;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
-.card {
-  background: var(--surface-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
+.btn-danger {
+  background: #fef2f2;
+  color: var(--danger-color);
+  border: 1px solid #fee2e2;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+}
+
+/* Inputs */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
 }
 
 .input-field {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  margin-top: 0.25rem;
+  border-radius: 10px;
   font-size: 0.95rem;
   font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
 }
 
 .input-field:focus {
-  outline: none;
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-label {
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
+/* Tablas */
 .table-container {
   width: 100%;
   border-collapse: collapse;
-  background: var(--surface-color);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border-color);
-}
-
-.table-container th,
-.table-container td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
 }
 
 .table-container th {
-  background-color: #F9F9F9;
-  font-weight: 600;
+  text-align: left;
+  padding: 1rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
+  border-bottom: 2px solid var(--border-color);
 }
 
-.table-container tr:last-child td {
-  border-bottom: none;
+.table-container td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.95rem;
+}
+
+.table-container tr:hover td {
+  background-color: #f8fafc;
 }
 
 .error-text {
   color: var(--danger-color);
   font-size: 0.85rem;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* Animaciones sutiles */
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

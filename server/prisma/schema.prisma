@@ -16,6 +16,7 @@ model Usuario {
   password_hash String
   rol           String   // Ej: "Gerente", "Almacen", etc.
   nombre        String
+  movimientos   MovimientoInventario[]
 }
 
 model Proveedor {
@@ -24,4 +25,62 @@ model Proveedor {
   razon_social String   @unique
   telefono     String?
   estado       String   @default("Activo") // "Activo" o "Inactivo" para borrado lógico
+  compras      Compra[]
+}
+
+model Insumo {
+  id             Int      @id @default(autoincrement())
+  nombre         String   @unique
+  unidad_medida  String
+  categoria      String
+  stock_minimo   Float    @default(0)
+  estado         String   @default("Activo") // Activo o Inactivo
+  compras_det    CompraDetalle[]
+  inventarios    Inventario[]
+  movimientos    MovimientoInventario[]
+}
+
+model Compra {
+  id           Int      @id @default(autoincrement())
+  proveedor_id Int
+  proveedor    Proveedor @relation(fields: [proveedor_id], references: [id])
+  fecha        DateTime @default(now())
+  total        Float
+  estado       String   @default("PENDIENTE_INGRESO") // PENDIENTE_INGRESO, INGRESADA
+  detalles     CompraDetalle[]
+}
+
+model CompraDetalle {
+  id              Int      @id @default(autoincrement())
+  compra_id       Int
+  compra          Compra   @relation(fields: [compra_id], references: [id])
+  insumo_id       Int
+  insumo          Insumo   @relation(fields: [insumo_id], references: [id])
+  cantidad        Float
+  precio_unitario Float
+}
+
+model Inventario {
+  id               Int      @id @default(autoincrement())
+  insumo_id        Int
+  insumo           Insumo   @relation(fields: [insumo_id], references: [id])
+  lote             String?
+  fecha_vencimiento DateTime?
+  cantidad_actual  Float
+  estado           String   @default("Disponible") // Disponible, Vencido, Dañado
+  movimientos      MovimientoInventario[]
+}
+
+model MovimientoInventario {
+  id               Int      @id @default(autoincrement())
+  insumo_id        Int
+  insumo           Insumo   @relation(fields: [insumo_id], references: [id])
+  inventario_id    Int?
+  inventario       Inventario? @relation(fields: [inventario_id], references: [id])
+  tipo_movimiento  String   // Ingreso, Salida, Merma
+  cantidad         Float
+  fecha            DateTime @default(now())
+  motivo           String?  // Compra, Ajuste, Vencimiento, Daño, etc.
+  usuario_id       Int
+  usuario          Usuario  @relation(fields: [usuario_id], references: [id])
 }

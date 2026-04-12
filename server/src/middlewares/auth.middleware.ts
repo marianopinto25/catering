@@ -29,3 +29,5 @@ export const requireGerente = (req: AuthRequest, res: Response, next: NextFuncti
   }
   next();
 };
+
+export const authenticateToken = requireAuth;

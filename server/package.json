@@ -18,6 +18,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "cors": "^2.x",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.x",
     "express": "^4.x",
     "jsonwebtoken": "^9.x",
