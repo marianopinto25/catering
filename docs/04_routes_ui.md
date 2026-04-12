@@ -11,16 +11,17 @@
     2. Tabla resumen (menú del día).
 
 ## 2. Pautas y Compras
-*   `GET /proveedores`
-    *   Tabla estilo Material-UI o Tailwind-Tables limpia. Botón negro "Nuevo Proveedor".
-*   `GET /proveedores/crear` ó Modal centrado `Crear Proveedor`.
-*   `GET /compras/nueva`
-    *   Formulario tipo "Asistente" (Wizard) simple. Búsqueda de proveedor -> agregar items insumos dinámicos en lista -> Guardar.
+*   `GET /compras` -> Listado histórico de facturas de compra.
+*   `GET /compras/nueva` -> Formulario Wizard para registrar compra. Permite buscar insumos existentes o crear uno rápido. Gatilla CU-04.
 
-## 3. Inventario
-*   `GET /inventario`
-    *   Tabla con buscador, indicador rojo/verde si necesita reponer stock o está próximo a caducar.
-*   `POST /inventario/merma` -> Renderizado en modal para retirar stock.
+## 3. Inventario y Alertas
+*   `GET /insumos` -> Catálogo maestro de insumos (CRUD básico). CU-06.
+*   `GET /insumos/:id/editar` -> Edición de stock mínimo, nombre, unidad. CU-06.
+*   `GET /inventario` -> Vista de stock actual consolidado y por lotes. CU-07.
+*   `GET /alertas` -> Panel central de alertas. CU-10 y CU-11.
+*   **Modales Operativos**:
+    *   `Ingresar Insumo`: Formulario manual (CU-05).
+    *   `Marcar Vencido/Dañado`: Cambio de estado de un lote (CU-08, CU-09).
 
 ## 4. Menú y Cocina
 *   `GET /menu/calendario` -> Vista en formato calendario por día.

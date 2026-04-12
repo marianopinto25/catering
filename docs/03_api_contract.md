@@ -5,18 +5,20 @@ Endpoints principales bajo prefijo `/api/v1/`
 ## 1. Proveedores y Compras
 *   **GET `/proveedores`** - Lista de proveedores (paginación, filtros).
 *   **POST `/proveedores`** - Crear proveedor.
-    *   *Req:* `{ "nit_rut": "1234", "razon_social": "ABC", "telefono": "..." }`
-    *   *Res:* `201 Created`
 *   **PUT `/proveedores/:id`** - Actualizar datos de proveedor.
-*   **POST `/compras`** - Crea factura de compra y, en éxito, gatilla movimientos de entrada al inventario.
-    *   *Req:* `{ proveedor_id: 1, monto: 150.0, insumos: [{ id:5, cant:10, precio:15 }] }`
+*   **POST `/compras`** - Registra compra y genera ingresos a inventario automáticamente.
+    *   *Req:* `{ proveedor_id: 1, fecha: "2024-04-12", items: [{ insumo_id: 5, cantidad: 10, precio_unitario: 15.0, fecha_vencimiento: "2024-12-01" }] }`
 
-## 2. Inventario
-*   **GET `/inventario`** - Estado de existencias y lotes.
-*   **POST `/inventario/ingreso`** - Añadir lote manualmente (sin compras).
-*   **POST `/inventario/mermas`** - Retirar inventario por avería o fecha.
-    *   *Req:* `{ insumo_id: 2, cantidad: 5, motivo: "vencido" }`
-*   **GET `/inventario/alertas`** - Endpoint combinando alertas de stock mínimo o vencimiento cercano.
+## 2. Inventario y Alertas
+*   **GET `/insumos`** - Lista de insumos (Catálogo maestro).
+*   **POST `/insumos`** - Crear nuevo insumo.
+    *   *Req:* `{ nombre: "Harina", unidad_medida: "Kg", categoria: "Abarrotes", stock_minimo: 5 }`
+*   **PUT `/insumos/:id`** - Editar maestro de insumo.
+*   **GET `/inventario`** - Consulta de stock actual por lote/vencimiento.
+*   **POST `/inventario/movimientos`** - Registrar entrada/salida/merma.
+    *   *Req:* `{ insumo_id: 2, tipo: "Merma", cantidad: 5, motivo: "Vencido|Dañado", inventario_id: 10 }`
+*   **GET `/alertas/vencimiento`** - Insumos con fecha <= 7 días (configurables).
+*   **GET `/alertas/stock`** - Insumos con stock total < stock_minimo.
 
 ## 3. Menú y Cocina
 *   **GET `/menus`** - Obtener planificación semanal (filtrado por fecha).

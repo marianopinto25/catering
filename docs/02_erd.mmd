@@ -30,7 +30,9 @@ erDiagram
         int id PK
         string nombre
         string unidad_medida
+        string categoria "Frutas, Carnes, Abarrotes, etc."
         decimal stock_minimo
+        string estado "Activo, Inactivo"
     }
 
     Inventario {
@@ -38,15 +40,18 @@ erDiagram
         int insumo_id FK
         decimal cantidad_actual
         date fecha_vencimiento
+        string lote "Código de lote opcional"
+        string estado "Disponible, Vencido, Dañado"
     }
 
     MovimientosInventario {
         int id PK
         int insumo_id FK
+        int inventario_id FK "Relaciona al lote específico"
         string tipo_movimiento "Ingreso, Salida, Merma"
         decimal cantidad
         datetime fecha
-        string motivo
+        string motivo "Compra, Ajuste, Vencimiento, etc."
         int usuario_id FK
     }
 

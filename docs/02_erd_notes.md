@@ -6,9 +6,16 @@
 *   **ComprasDetalle:** Renglones de la factura del proveedor especificando precio por insumo.
 
 ## 2. Inventario
-*   **Insumos:** Catálogo maestro básico (ej: Arroz, Carne de res, Zanahoria). Campo clave: `stock_minimo` (dispara alertas CU11).
-*   **Inventario:** Lotes reales del almacén. Campo clave: `fecha_vencimiento` (fundamental para CU10, Alertas de vencimiento).
-*   **MovimientosInventario:** Log inmutable de suma o resta (ingreso por compras, salida a cocina, merma/vencido).
+*   **Insumos:** Catálogo maestro básico (ej: Arroz, Carne de res, Zanahoria). 
+    *   `categoria`: Permite organizar por tipo (Cárnicos, Lácteos, etc.).
+    *   `unidad_medida`: Kg, L, Unidad, etc.
+    *   `stock_minimo`: Umbral para disparar alertas de reabastecimiento (CU11).
+    *   `estado`: `Activo` o `Inactivo` (borrado lógico).
+*   **Inventario:** Representa los lotes físicos en almacén.
+    *   `fecha_vencimiento`: Fecha límite de consumo (CU10).
+    *   `estado`: `Disponible`, `Vencido` o `Dañado`. Los dos últimos bloquean su retiro para cocina.
+*   **MovimientosInventario:** Histórico detallado (Kardex) de cada entrada y salida. 
+    *   Relacionado a un `Insumo` y opcionalmente a un registro de `Inventario` (lote).
 
 ## 3. Menú y Cocina
 *   **Menus:** Define el servicio planificado en una fecha específica (CU12, CU13).
