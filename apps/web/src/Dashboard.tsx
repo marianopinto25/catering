@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { PackageOpen, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

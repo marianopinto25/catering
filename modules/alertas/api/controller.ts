@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../core/api/prisma';
 import { addDays, startOfDay } from 'date-fns';
-
-const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL || 'file:./dev.db' } } });
 
 /**
  * CU-10 y CU-11: Generar Alertas

@@ -1,0 +1,36 @@
+{
+  "name": "catering-api",
+  "version": "1.0.0",
+  "description": "Runner Express — catering modular",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:push": "prisma db push --schema=../../prisma/schema.prisma",
+    "db:seed": "ts-node ../../prisma/seed.ts"
+  },
+  "prisma": {
+    "schema": "../../prisma/schema.prisma"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "cors": "^2.x",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.x",
+    "express": "^4.x",
+    "jsonwebtoken": "^9.x",
+    "prisma": "^5.22.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.x",
+    "@types/express": "^4.x",
+    "@types/jsonwebtoken": "^9.x",
+    "@types/node": "^20.x",
+    "nodemon": "^3.x",
+    "ts-node": "^10.x",
+    "typescript": "^5.x"
+  }
+}

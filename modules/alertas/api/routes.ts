@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as AlertasController from '../controllers/alertas.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import * as AlertasController from './controller';
+import { authenticateToken } from '../../../core/api/auth.middleware';
 
 const router = Router();
 

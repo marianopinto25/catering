@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL || 'file:./dev.db' } } });
+import { prisma } from '../../../core/api/prisma';
 
 /**
  * CU-04: Registrar compra de insumos

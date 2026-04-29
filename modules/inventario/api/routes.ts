@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as InventarioController from '../controllers/inventario.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import * as InventarioController from './controller';
+import { authenticateToken } from '../../../core/api/auth.middleware';
 
 const router = Router();
 

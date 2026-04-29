@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { Plus, PackageCheck, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatMoney } from '../../utils/format';
+import { formatMoney } from '@core/format';
 
 interface Compra {
   id: number;

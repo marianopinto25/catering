@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { Package, Ban, History, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface InventarioLote {

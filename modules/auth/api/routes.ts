@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../core/api/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-mock';
 
 router.post('/login', async (req, res) => {

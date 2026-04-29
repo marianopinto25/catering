@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../core/api/prisma';
 
 export const getProveedores = async (req: Request, res: Response) => {
   try {

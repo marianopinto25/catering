@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getProveedores, createProveedor, editProveedor, deleteProveedor } from '../controllers/proveedores.controller';
-import { requireAuth, requireGerente } from '../middlewares/auth.middleware';
+import { getProveedores, createProveedor, editProveedor, deleteProveedor } from './controller';
+import { requireAuth, requireGerente } from '../../../core/api/auth.middleware';
 
 const router = Router();
 

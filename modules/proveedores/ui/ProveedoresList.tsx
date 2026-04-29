@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 interface Proveedor {

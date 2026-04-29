@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { PackageCheck, Save, Calendar } from 'lucide-react';
 
 interface DetalleCompra {

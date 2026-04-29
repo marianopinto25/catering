@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as InsumosController from '../controllers/insumos.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import * as InsumosController from './controller';
+import { authenticateToken } from '../../../core/api/auth.middleware';
 
 const router = Router();
 

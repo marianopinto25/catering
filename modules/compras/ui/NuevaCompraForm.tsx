@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@core/AuthContext';
 import { Trash2, Plus, Save } from 'lucide-react';
-import { formatMoney } from '../../utils/format';
+import { formatMoney } from '@core/format';
 
 interface Proveedor {
   id: number;

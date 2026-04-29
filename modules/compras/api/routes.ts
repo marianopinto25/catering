@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as ComprasController from '../controllers/compras.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import * as ComprasController from './controller';
+import { authenticateToken } from '../../../core/api/auth.middleware';
 
 const router = Router();
 
