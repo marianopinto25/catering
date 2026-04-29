@@ -1,0 +1,40 @@
+CU_ID,CasoDeUso,ActorPrimario,RolesPermitidos,Pantallas(ReactRoutes),Endpoints,Tablas,Validaciones,FlujosAlternativos,CriteriosAceptacion
+CU01,Registrar proveedor,Gerente,Gerente,/proveedores/nuevo,POST /api/proveedores,Proveedores,NIT y Nombre únicos,El proveedor ya existe -> Proveedor ya registrado,Proveedor creado exitosamente
+CU02,Editar proveedor,Gerente,Gerente,/proveedores/:id/editar,PUT /api/proveedores/:id,Proveedores,ID válido; NIT y Nombre únicos,El proveedor ya existe -> Proveedor ya registrado,Datos actualizados
+CU03,Eliminar proveedor,Gerente,Gerente,/proveedores,DELETE /api/proveedores/:id,Proveedores,Borrado lógico siempre (estado = Inactivo),Flujos ignoran inactivos por defecto,Proveedor marcado como Inactivo y oculto
+CU04,Registrar compra de insumos,"Gerente, Almacen","Gerente, Almacen",/compras/nueva,POST /api/compras,"Compras, ComprasDetalle",Montos > 0; Proveedor activo,Insumo no existe -> Crear en flujo de compra,Compra registrada (PENDIENTE_INGRESO)
+CU05,Ingresar insumos al inventario,Resp. almacén,"Gerente, Almacen",/inventario/ingreso,POST /api/inventario/movimientos,Inventario / Movimientos,Cantidad > 0; Lote y Vencimiento req,Datos incompletos -> Error,Stock sumado y Lotes creados
+CU06,Editar información de insumos,Resp. almacén,"Gerente, Almacen",/insumos/:id/editar,PUT /api/insumos/:id,Insumos,Nombre único,Insumo ya existe -> Error,Catálogo maestro actualizado
+CU07,Consultar inventario,Resp. almacén,"Gerente, Almacen",/inventario,GET /api/inventario,Inventario,N/A,Sin existencias -> Vista vacía,Vista consolidada y detallada de stock
+CU08,Registrar producto vencido,Resp. almacén,"Gerente, Almacen",/inventario,POST /api/inventario/merma,Movimientos,Motivo: Vencido,Cantidad excede stock -> Error,Stock reducido y movimiento registrado
+CU09,Registrar producto dañado,Resp. almacén,"Gerente, Almacen",/inventario,POST /api/inventario/merma,Movimientos,Motivo: Dañado,Cantidad excede stock -> Error,Stock reducido y movimiento registrado
+CU10,Generar alerta por vencimiento,Sistema,"Gerente, Almacen",/alertas,GET /api/alertas?dias=7,Inventario,Umbral configurable,Sin caducidades -> Panel limpio,Notificación de lotes por vencer
+CU11,Generar alerta por bajo stock,Sistema,"Gerente, Almacen",/alertas,GET /api/alertas,Insumos,Stock < Mínimo,Stock suficiente -> Panel limpio,Notificación de reabastecimiento necesario
+CU12,Planificar menú semanal,Gerente,Gerente,/menu/planificacion,POST /api/menus,Menus,Insumos disponibles,Conflicto de fechas -> Error,Menú agendado para la semana
+CU13,Editar menú semanal,Gerente,Gerente,/menus/:id/editar,PUT /api/menus/:id,Menus,N/A,Modificación fuera de tiempo -> Error,Menú reprogramado
+CU14,Consultar menú diario,Actores,"Gerente, Cocinero, Cliente",/menu/diario,GET /api/menus/diario,Menus,N/A,No hay menú -> Mostrar aviso,Detalle de platos y raciones
+CU15,Retirar insumos para cocina,Cocinero,"Cocinero, Almacén",/cocina/retiros,POST /api/inventario/salidas,Movimientos_Inventario,Stock >= requerido,Stock insuficiente -> Alerta e interrupción,Descuento de stock en almacén
+CU16,Registrar preparación del plato,Cocinero,Cocinero,/cocina/preparaciones,POST /api/cocina/preparaciones,Preparaciones,Cantidades válidas,Fallas técnicas -> Registro postergado,Cambio de estado del requerimiento
+CU17,Registrar cambio de ingrediente,Cocinero,Cocinero,/cocina/cambios,POST /api/cocina/cambios,Ajustes_Receta,Motivo requerido,Ajuste no válido -> Rechazar,Registro del cambio para reportes
+CU18,Registrar asistencia del trabajador,Sistema,Trabajador,/comedor/asistencia,POST /api/asistencias,Asistencias,Validación de identidad,DNI no existe en BD -> Error / Agregar a contingencia,Marca registrada
+CU19,Identificar trabajador (código/QR),Sistema,Trabajador,/comedor/escaneo,GET /api/trabajadores/:codigo,Trabajadores,QR válido/vigente,QR ilegible -> Digitación manual (CU18),Trabajador validado y en pantalla
+CU20,Registrar firma de consumo,Trabajador,Trabajador,/comedor/consumo,POST /api/consumos,Consumos,No doble consumo (salvo CU22),Ya consumió -> Notificación roja de alerta,Consumo guardado a su cuenta
+CU21,Registrar ausencia del trabajador,Sistema,N/A,Viene de reportes,N/A,Consumos/Asistencias,Inferencia fin del día,N/A,Ausencia remarcada
+CU22,Registrar doble ración,Gerente,Gerente,/comedor/autorizar,POST /api/consumos/doble,Consumos,Autorización superior,Cupo excedido -> Excepción,Segunda ración cobrada a empresa cliente
+CU23,Registrar comentario del trabajador,Trabajador,Trabajador,/comedor/feedback,POST /api/feedback,Feedback,Puntaje válido,Sin red -> Guardado offline,Rating almacenado
+CU24,Consultar comentarios del día,Gerente,"Gerente, Cocinero",/reportes/feedback,GET /api/feedback/diario,Feedback,N/A,Sin datos -> Tabla vacía,Reporte de satisfacción
+CU25,Consultar historial de aceptación,Gerente,"Gerente, Cliente",/reportes/historico-feedback,GET /api/feedback/historico,Feedback,N/A,N/A,Gráficos de tendencia y platos más gustados
+CU26,Modificar menú según aceptación,Gerente,Gerente,/menu/planificacion,PUT /api/menus/:id,Menus,Basado en CU25,N/A,Menú adaptado a preferencias
+CU27,Generar reporte diario,Gerente,"Gerente, Cliente",/reportes/diario,GET /api/reportes/diario,"Consumos, Asistencias",Fechas correctas,Día no cerrado -> Advertencia,Tabla consolidada
+CU28,Generar reporte semanal,Gerente,"Gerente, Cliente",/reportes/semanal,GET /api/reportes/semanal,"Consumos, Asistencias",Fechas correctas,Semana en curso -> Datos parciales,Métricas semanales
+CU29,Validar reporte (cliente),Cliente,Cliente,/reportes/validar,POST /api/reportes/:id/validar,Reportes_Aprobados,No previamente validado,Discrepancias -> Rechaza para revisión,El reporte queda congelado para facturar
+CU30,Descargar reporte en PDF,Usuario,"Gerente, Cliente",/reportes/descarga,GET /api/reportes/exportar/pdf,Varias,Reporte existe,Falla de red -> Reintentar,PDF binario generado
+CU31,Descargar reporte en Excel,Usuario,"Gerente, Cliente",/reportes/descarga,GET /api/reportes/exportar/excel,Varias,Reporte existe,Falla de red -> Reintentar,XLSX generado
+CU32,Generar factura,Gerente,Gerente,/facturacion/nueva,POST /api/facturas,Facturas,Reportes validados y no facturados previamente,Faltan aprobaciones -> Mostrar error,Factura generada y asiganada al cliente
+CU33,Consultar historial de facturas,Gerente,"Gerente, Cliente",/facturacion,GET /api/facturas,Facturas,N/A,Tabla vacía -> Informar,Listado de facturas históricas
+CU34,Registrar entrada de personal,Staff Catering,"Todos Catering",/asistencia-staff,POST /api/staff/entrada,Asistencias_Staff,Ubicación válida,Sin acceso -> Guardado offline (reloj físico),Marca inicio turno
+CU35,Registrar salida de personal,Staff Catering,"Todos Catering",/asistencia-staff,POST /api/staff/salida,Asistencias_Staff,Entrada previa existente,Omisión de entrada -> Requiere manualidad,Marca fin turno
+CU36,Consultar asistencia del personal,Gerente,Gerente,/staff/asistencias,GET /api/staff/asistencias,Asistencias_Staff,N/A,N/A,Listado de horas trabajadas
+CU37,Asignar rol de usuario,Gerente,Gerente,/usuarios/:id/rol,PUT /api/usuarios/:id/roles,Usuarios,Solo jerarquía permitida,N/A,Permisos modificados
+CU38,Editar usuario,Gerente,Gerente,/usuarios/:id/editar,PUT /api/usuarios/:id,Usuarios,Emails únicos,Email repetido -> Error,Información personal guardada
+CU39,Sincronizar información offline,Sistema,N/A,Fondo,POST /api/sync/batch,Todas,Validación de integridad de los paquetes batch,Conflictos -> Cola de errores en Panel,BD cloud actualizada con comedor

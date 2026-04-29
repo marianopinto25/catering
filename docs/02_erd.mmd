@@ -1,0 +1,156 @@
+```mermaid
+erDiagram
+    %% Módulo Proveedores y Compras
+    Proveedores {
+        int id PK
+        string nit_rut "Único"
+        string razon_social
+        string telefono
+        string estado "Activo/Inactivo"
+    }
+
+    Compras {
+        int id PK
+        int proveedor_id FK
+        datetime fecha
+        decimal total
+        string estado
+    }
+
+    ComprasDetalle {
+        int id PK
+        int compra_id FK
+        int insumo_id FK
+        decimal cantidad
+        decimal precio_unitario
+    }
+
+    %% Módulo Inventario
+    Insumos {
+        int id PK
+        string nombre
+        string unidad_medida
+        string categoria "Frutas, Carnes, Abarrotes, etc."
+        decimal stock_minimo
+        string estado "Activo, Inactivo"
+    }
+
+    Inventario {
+        int id PK
+        int insumo_id FK
+        decimal cantidad_actual
+        date fecha_vencimiento
+        string lote "Código de lote opcional"
+        string estado "Disponible, Vencido, Dañado"
+    }
+
+    MovimientosInventario {
+        int id PK
+        int insumo_id FK
+        int inventario_id FK "Relaciona al lote específico"
+        string tipo_movimiento "Ingreso, Salida, Merma"
+        decimal cantidad
+        datetime fecha
+        string motivo "Compra, Ajuste, Vencimiento, etc."
+        int usuario_id FK
+    }
+
+    %% Módulo Menú y Cocina
+    Menus {
+        int id PK
+        date fecha
+        string tipo "Desayuno, Almuerzo, Cena"
+        string estado "Planificado, Ejecución, Facturado"
+    }
+
+    Platos {
+        int id PK
+        int menu_id FK
+        string descripcion
+    }
+
+    AjustesReceta {
+        int id PK
+        int plato_id FK
+        string motivo_cambio
+        datetime creado_en
+    }
+
+    %% Módulo Consumo y Asistencia (Cliente final)
+    EmpresaCliente {
+        int id PK
+        string razon_social
+    }
+
+    TrabajadoresCliente {
+        int id PK
+        int cliente_id FK
+        string dni_codigo
+        string nombres
+        string codigo_qr
+        boolean activo
+    }
+
+    Consumos {
+        int id PK
+        int trabajador_id FK
+        int menu_id FK
+        datetime fechahora_consumo
+        boolean doble_racion
+        boolean validado_offline
+    }
+
+    Feedback {
+        int id PK
+        int consumo_id FK
+        int puntuacion
+        string comentario
+    }
+
+    %% Módulo Facturación
+    Facturas {
+        int id PK
+        int cliente_id FK
+        date fecha_emision
+        decimal monto_total
+        string url_pdf
+        string estado "Emitida, Pagada"
+    }
+
+    %% Usuarios Internos (Catering)
+    Usuarios {
+        int id PK
+        string nombre
+        string email
+        string password_hash
+        string rol "Gerente, Cocinero, Almacen, Cliente"
+    }
+
+    AsistenciasStaff {
+        int id PK
+        int usuario_id FK
+        datetime marcacion_entrada
+        datetime marcacion_salida
+    }
+
+    %% Relaciones
+    Proveedores ||--o{ Compras : "recibe"
+    Compras ||--|{ ComprasDetalle : "contiene"
+    Insumos ||--o{ ComprasDetalle : "comprado en"
+
+    Insumos ||--o{ Inventario : "almacenado"
+    Insumos ||--o{ MovimientosInventario : "tiene"
+    Usuarios ||--o{ MovimientosInventario : "registra"
+
+    Menus ||--|{ Platos : "ofrece"
+    Platos ||--o{ AjustesReceta : "sufre modificaciones"
+
+    TrabajadoresCliente ||--o{ Consumos : "realiza"
+    Menus ||--o{ Consumos : "se consume en"
+    Consumos ||--o| Feedback : "genera"
+    EmpresaCliente ||--|{ TrabajadoresCliente : "emplea"
+    EmpresaCliente ||--o{ Facturas : "paga"
+
+    Usuarios ||--o{ AsistenciasStaff : "registra jornada"
+
+```
