@@ -1,0 +1,73 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getCompraById = exports.getCompras = exports.registrarCompra = void 0;
+const prisma_1 = require("../../../core/api/prisma");
+/**
+ * CU-04: Registrar compra de insumos
+ * Solo registra la Compra y su detalle. Estado: PENDIENTE_INGRESO.
+ * No afecta inventario aún.
+ */
+const registrarCompra = async (req, res) => {
+    const { proveedor_id, total, detalles } = req.body;
+    try {
+        // Validar proveedor
+        const proveedor = await prisma_1.prisma.proveedor.findUnique({ where: { id: proveedor_id } });
+        if (!proveedor || proveedor.estado !== 'Activo') {
+            return res.status(400).json({ error: 'Proveedor no válido o inactivo' });
+        }
+        // Crear compra con detalles en una transacción
+        const compra = await prisma_1.prisma.compra.create({
+            data: {
+                proveedor_id,
+                total,
+                estado: 'PENDIENTE_INGRESO',
+                detalles: {
+                    create: detalles.map((d) => ({
+                        insumo_id: d.insumo_id,
+                        cantidad: d.cantidad,
+                        precio_unitario: d.precio_unitario,
+                    })),
+                },
+            },
+            include: { detalles: true },
+        });
+        res.status(201).json(compra);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al registrar la compra' });
+    }
+};
+exports.registrarCompra = registrarCompra;
+const getCompras = async (req, res) => {
+    try {
+        const compras = await prisma_1.prisma.compra.findMany({
+            include: { proveedor: { select: { razon_social: true } } },
+            orderBy: { fecha: 'desc' },
+        });
+        res.json(compras);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener compras' });
+    }
+};
+exports.getCompras = getCompras;
+const getCompraById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const compra = await prisma_1.prisma.compra.findUnique({
+            where: { id: Number(id) },
+            include: {
+                detalles: { include: { insumo: true } },
+                proveedor: true
+            },
+        });
+        if (!compra)
+            return res.status(404).json({ error: 'Compra no encontrada' });
+        res.json(compra);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener detalle de compra' });
+    }
+};
+exports.getCompraById = getCompraById;
