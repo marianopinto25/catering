@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@core/AuthContext';
-import { CalendarDays, ChefHat, Plus, Trash2, Utensils } from 'lucide-react';
+import { CalendarDays, ChefHat, FileUp, Plus, Trash2, Utensils } from 'lucide-react';
 
 interface Insumo {
   id: number;
@@ -49,8 +49,72 @@ interface RequerimientoItem {
   porciones_totales: number;
 }
 
+interface ImportRow {
+  semana: number;
+  dia: string;
+  turno: string;
+  plato: string;
+  porciones: number;
+}
+
 const semanas = [1, 2, 3, 4];
 const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const turnos = ['Desayuno', 'Almuerzo', 'Cena'];
+
+const normalizeText = (value: string) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const normalizeDia = (value: string) => {
+  const found = dias.find(dia => normalizeText(dia) === normalizeText(value));
+  return found || value.trim();
+};
+
+const normalizeTurno = (value: string) => {
+  const found = turnos.find(turno => normalizeText(turno) === normalizeText(value));
+  return found || 'Almuerzo';
+};
+
+const splitCsvLine = (line: string) => {
+  const delimiter = line.includes(';') ? ';' : ',';
+  const result: string[] = [];
+  let current = '';
+  let quoted = false;
+
+  for (const char of line) {
+    if (char === '"') {
+      quoted = !quoted;
+    } else if (char === delimiter && !quoted) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result.map(value => value.replace(/^"|"$/g, ''));
+};
+
+const parseMenuCsv = (text: string): ImportRow[] => {
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (lines.length <= 1) return [];
+
+  return lines.slice(1).map((line, index) => {
+    const [semana, dia, turno, plato, porciones] = splitCsvLine(line);
+    const row = {
+      semana: Number(semana),
+      dia: normalizeDia(dia || ''),
+      turno: normalizeTurno(turno || ''),
+      plato: (plato || '').trim(),
+      porciones: Number(porciones)
+    };
+
+    if (!Number.isInteger(row.semana) || row.semana < 1 || row.semana > 4 || !dias.includes(row.dia) || !turnos.includes(row.turno) || !row.plato || row.porciones <= 0) {
+      throw new Error(`Fila ${index + 2}: revisa semana, día, turno, plato y porciones`);
+    }
+
+    return row;
+  });
+};
 
 const MenuMensualPage: React.FC = () => {
   const now = new Date();
@@ -63,6 +127,7 @@ const MenuMensualPage: React.FC = () => {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [requerimiento, setRequerimiento] = useState<RequerimientoItem[]>([]);
   const [selectedDia, setSelectedDia] = useState('Lunes');
+  const [selectedTurno, setSelectedTurno] = useState('Almuerzo');
   const [selectedPlatoId, setSelectedPlatoId] = useState<number | ''>('');
   const [selectedPlatoDetalleId, setSelectedPlatoDetalleId] = useState<number | null>(null);
   const [porciones, setPorciones] = useState(120);
@@ -70,6 +135,7 @@ const MenuMensualPage: React.FC = () => {
   const [descripcionPlato, setDescripcionPlato] = useState('');
   const [recetaInsumoId, setRecetaInsumoId] = useState<number | ''>('');
   const [recetaCantidad, setRecetaCantidad] = useState(0);
+  const [importMessage, setImportMessage] = useState('');
 
   const authHeaders = useMemo(() => ({
     'Content-Type': 'application/json',
@@ -84,9 +150,20 @@ const MenuMensualPage: React.FC = () => {
     platos.find(plato => plato.id === selectedPlatoDetalleId) || itemsSemana[0]?.plato || platos[0] || null
   ), [platos, selectedPlatoDetalleId, itemsSemana]);
 
+  const menuBySlot = useMemo(() => {
+    const map = new Map<string, MenuItem>();
+    for (const item of itemsSemana) map.set(`${item.dia}-${item.turno}`, item);
+    return map;
+  }, [itemsSemana]);
+
   const fetchPlatos = async () => {
     const res = await fetch('/api/platos', { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setPlatos(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setPlatos(data);
+      return data as Plato[];
+    }
+    return platos;
   };
 
   const fetchInsumos = async () => {
@@ -96,7 +173,12 @@ const MenuMensualPage: React.FC = () => {
 
   const fetchMenu = async () => {
     const res = await fetch(`/api/menus?anio=${anio}&mes=${mes}`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setMenu(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setMenu(data);
+      return data as MenuMes | null;
+    }
+    return menu;
   };
 
   const fetchRequerimiento = async (menuId: number) => {
@@ -142,11 +224,43 @@ const MenuMensualPage: React.FC = () => {
     return { ...created, items: [] } as MenuMes;
   };
 
+  const ensurePlato = async (nombre: string, currentPlatos: Plato[]) => {
+    const existing = currentPlatos.find(plato => normalizeText(plato.nombre) === normalizeText(nombre));
+    if (existing) return { plato: existing, platosList: currentPlatos };
+
+    const res = await fetch('/api/platos', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ nombre, descripcion: 'Importado desde archivo de menú' })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || `No se pudo crear el plato ${nombre}`);
+    }
+
+    const created = await res.json();
+    return { plato: created as Plato, platosList: [...currentPlatos, created] as Plato[] };
+  };
+
   const handleMonthChange = (value: string) => {
     const [year, month] = value.split('-').map(Number);
     setAnio(year);
     setMes(month);
     setSelectedPlatoDetalleId(null);
+  };
+
+  const saveMenuSlot = async (targetMenuId: number, item: { semana: number; dia: string; turno: string; plato_id: number; porciones_estimadas: number }) => {
+    const res = await fetch(`/api/menus/${targetMenuId}/items`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(item)
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'No se pudo guardar el plato del menú');
+    }
+    return res.json();
   };
 
   const handleGuardarItem = async (event: React.FormEvent) => {
@@ -155,22 +269,13 @@ const MenuMensualPage: React.FC = () => {
 
     try {
       const targetMenu = await ensureMenu();
-      const res = await fetch(`/api/menus/${targetMenu.id}/items`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          semana,
-          dia: selectedDia,
-          turno: 'Almuerzo',
-          plato_id: selectedPlatoId,
-          porciones_estimadas: porciones
-        })
+      await saveMenuSlot(targetMenu.id, {
+        semana,
+        dia: selectedDia,
+        turno: selectedTurno,
+        plato_id: Number(selectedPlatoId),
+        porciones_estimadas: porciones
       });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || 'No se pudo guardar el plato del día');
-        return;
-      }
       await fetchMenu();
       await fetchRequerimiento(targetMenu.id);
       setSelectedPlatoDetalleId(Number(selectedPlatoId));
@@ -247,6 +352,55 @@ const MenuMensualPage: React.FC = () => {
     }
   };
 
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImportMessage('Leyendo archivo...');
+      const text = await file.text();
+      const rows = parseMenuCsv(text);
+      const targetMenu = await ensureMenu();
+      let platosList = await fetchPlatos();
+
+      for (const row of rows) {
+        const result = await ensurePlato(row.plato, platosList);
+        platosList = result.platosList;
+        await saveMenuSlot(targetMenu.id, {
+          semana: row.semana,
+          dia: row.dia,
+          turno: row.turno,
+          plato_id: result.plato.id,
+          porciones_estimadas: row.porciones
+        });
+      }
+
+      setPlatos(platosList);
+      await fetchMenu();
+      await fetchRequerimiento(targetMenu.id);
+      setImportMessage(`Importación lista: ${rows.length} filas cargadas.`);
+      event.target.value = '';
+    } catch (error: any) {
+      setImportMessage(error.message);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const sample = [
+      'semana,dia,turno,plato,porciones',
+      '1,Lunes,Desayuno,Avena con frutas,80',
+      '1,Lunes,Almuerzo,Arroz con pollo,120',
+      '1,Lunes,Cena,Sopa de verduras,90'
+    ].join('\n');
+    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'formato-menu.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
@@ -254,7 +408,7 @@ const MenuMensualPage: React.FC = () => {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.75rem', margin: 0 }}>
             <Utensils size={26} /> Menú mensual
           </h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.35rem' }}>Semana 1-4, almuerzo y receta por porción.</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.35rem' }}>Planifica desayuno, almuerzo y cena. Cada plato puede tener receta por porción.</p>
         </div>
         <input
           className="input-field"
@@ -265,12 +419,12 @@ const MenuMensualPage: React.FC = () => {
         />
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(360px, 1.25fr) minmax(360px, 1fr)', gap: '1rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '250px minmax(460px, 1.35fr) minmax(380px, 1fr)', gap: '1rem', alignItems: 'start' }}>
         <aside className="card" style={{ padding: '1rem' }}>
           <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CalendarDays size={18} /> {mes}/{anio}
           </h3>
-          <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
             {semanas.map(numero => (
               <button
                 key={numero}
@@ -282,64 +436,94 @@ const MenuMensualPage: React.FC = () => {
               </button>
             ))}
           </div>
+
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            <h3 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileUp size={17} /> Cargar desde Excel
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+              En Excel crea columnas: semana, dia, turno, plato, porciones. Guarda como CSV y súbelo aquí.
+            </p>
+            <button className="btn-secondary" type="button" onClick={downloadTemplate} style={{ width: '100%', margin: '0.75rem 0' }}>
+              Descargar formato
+            </button>
+            <input className="input-field" type="file" accept=".csv,text/csv" onChange={handleImportFile} />
+            {importMessage && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{importMessage}</p>}
+          </div>
         </aside>
 
         <section className="card" style={{ padding: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ChefHat size={18} /> Platos de la semana
+          <h3 style={{ fontSize: '1rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ChefHat size={18} /> Semana {semana}
           </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginBottom: '1rem' }}>
+            Cada día tiene tres servicios. Selecciona una celda para editarla.
+          </p>
 
-          <div style={{ display: 'grid', gap: '0.55rem', marginBottom: '1rem' }}>
-            {dias.map(dia => {
-              const item = itemsSemana.find(entry => entry.dia === dia);
-              return (
-                <button
-                  key={dia}
-                  onClick={() => {
-                    setSelectedDia(dia);
-                    if (item) {
-                      setSelectedPlatoId(item.plato.id);
-                      setSelectedPlatoDetalleId(item.plato.id);
-                      setPorciones(item.porciones_estimadas);
-                    }
-                  }}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '90px 1fr 84px 32px',
-                    gap: '0.75rem',
-                    alignItems: 'center',
-                    border: selectedDia === dia ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
-                    background: selectedDia === dia ? '#f8fafc' : '#fff',
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    textAlign: 'left',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <strong>{dia}</strong>
-                  <span>{item?.plato.nombre || 'Sin plato'}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{item ? `${item.porciones_estimadas} porc.` : 'Almuerzo'}</span>
-                  {item ? (
-                    <Trash2
-                      size={16}
-                      color="var(--danger-color)"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleEliminarItem(item.id);
-                      }}
-                    />
-                  ) : <span />}
-                </button>
-              );
-            })}
+          <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
+            <table className="table-container">
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  {turnos.map(turno => <th key={turno}>{turno}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {dias.map(dia => (
+                  <tr key={dia}>
+                    <td><strong>{dia}</strong></td>
+                    {turnos.map(turno => {
+                      const item = menuBySlot.get(`${dia}-${turno}`);
+                      const isSelected = selectedDia === dia && selectedTurno === turno;
+                      return (
+                        <td key={turno} style={{ minWidth: '160px', background: isSelected ? '#f8fafc' : 'transparent' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDia(dia);
+                              setSelectedTurno(turno);
+                              if (item) {
+                                setSelectedPlatoId(item.plato.id);
+                                setSelectedPlatoDetalleId(item.plato.id);
+                                setPorciones(item.porciones_estimadas);
+                              }
+                            }}
+                            style={{ width: '100%', border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer', padding: 0 }}
+                          >
+                            <strong style={{ display: 'block', fontSize: '0.86rem' }}>{item?.plato.nombre || 'Sin plato'}</strong>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item ? `${item.porciones_estimadas} porciones` : 'Click para asignar'}</span>
+                          </button>
+                          {item && (
+                            <button
+                              className="btn-secondary"
+                              onClick={() => handleEliminarItem(item.id)}
+                              style={{ marginTop: '0.4rem', padding: '0.2rem 0.4rem' }}
+                              type="button"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <form onSubmit={handleGuardarItem} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: '0.75rem' }}>
               <div className="form-group">
                 <label className="form-label">Día</label>
                 <select className="input-field" value={selectedDia} onChange={event => setSelectedDia(event.target.value)}>
                   {dias.map(dia => <option key={dia} value={dia}>{dia}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Servicio</label>
+                <select className="input-field" value={selectedTurno} onChange={event => setSelectedTurno(event.target.value)}>
+                  {turnos.map(turno => <option key={turno} value={turno}>{turno}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -354,14 +538,15 @@ const MenuMensualPage: React.FC = () => {
               </select>
             </div>
             <button className="btn-primary" type="submit" style={{ width: '100%' }}>
-              Guardar almuerzo
+              Guardar {selectedTurno.toLowerCase()}
             </button>
           </form>
         </section>
 
         <section style={{ display: 'grid', gap: '1rem' }}>
           <div className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Catálogo de platos</h3>
+            <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Catálogo de platos</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '0.75rem' }}>Crea platos una vez y reutilízalos en cualquier servicio.</p>
             <form onSubmit={handleCrearPlato} style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
               <input className="input-field" value={nuevoPlato} onChange={event => setNuevoPlato(event.target.value)} placeholder="Nombre del plato" required />
               <input className="input-field" value={descripcionPlato} onChange={event => setDescripcionPlato(event.target.value)} placeholder="Descripción breve" />
@@ -380,7 +565,8 @@ const MenuMensualPage: React.FC = () => {
 
           <div className="card" style={{ padding: '1rem' }}>
             <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Receta mínima</h3>
-            <p style={{ fontWeight: 600, marginBottom: '0.75rem' }}>{platoDetalle?.nombre || 'Sin plato'}</p>
+            <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{platoDetalle?.nombre || 'Sin plato'}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '0.75rem' }}>Cantidad de cada insumo para una porción.</p>
             <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
               {platoDetalle?.receta?.length ? platoDetalle.receta.map(item => (
                 <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 28px', gap: '0.5rem', alignItems: 'center', fontSize: '0.9rem' }}>
@@ -413,7 +599,8 @@ const MenuMensualPage: React.FC = () => {
           </div>
 
           <div className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Requerimiento semanal</h3>
+            <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Requerimiento semanal</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '0.75rem' }}>Suma desayuno, almuerzo y cena de la semana seleccionada.</p>
             <table className="table-container">
               <thead>
                 <tr>

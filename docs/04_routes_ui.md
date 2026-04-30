@@ -34,7 +34,8 @@
 ## 4. Menú y Cocina
 *   `GET /menu` -> Pantalla principal de menú mensual multi-panel. Sprint 4.
     *   **Panel izquierdo:** selector Semana 1, Semana 2, Semana 3, Semana 4; mes/año activo.
-    *   **Panel centro:** lista de días de la semana seleccionada con plato, turno `Almuerzo` y porciones estimadas.
+    *   **Panel izquierdo / carga:** importador CSV exportado desde Excel con columnas `semana,dia,turno,plato,porciones`.
+    *   **Panel centro:** matriz de días contra servicios `Desayuno`, `Almuerzo`, `Cena`, con plato y porciones estimadas.
     *   **Panel derecho:** receta del plato seleccionado y requerimiento semanal consolidado por insumo.
 *   `GET /menu/platos` -> Gestión rápida de catálogo de platos y receta mínima.
 *   `GET /menu/calendario` -> Alias futuro o vista alternativa en formato calendario por día; no es prioridad Sprint 4.
@@ -43,12 +44,12 @@
 ### Wireframe textual Sprint 4
 ```text
 ┌────────────────────┬──────────────────────────────┬──────────────────────────────┐
-│ Semana 1           │ Lunes    Almuerzo  Plato A    │ Plato seleccionado            │
-│ Semana 2           │ Martes   Almuerzo  Plato B    │ - Receta mínima               │
-│ Semana 3           │ Miércoles ...                 │   Insumo | Cant/porción       │
-│ Semana 4           │                              │                              │
-│ Mes/Año activo     │ + Agregar/editar plato día    │ Requerimiento semanal         │
-│                    │ Porciones estimadas por día   │ Insumo | Total requerido      │
+│ Semana 1           │ Día        Desayuno Almuerzo  │ Plato seleccionado            │
+│ Semana 2           │ Lunes      Plato A  Plato B   │ - Receta mínima               │
+│ Semana 3           │ Martes     Plato C  Plato D   │   Insumo | Cant/porción       │
+│ Semana 4           │ Carga CSV  Cena               │ Requerimiento semanal         │
+│ Mes/Año activo     │ + Editar servicio seleccionado│ Insumo | Total requerido      │
+│ Formato CSV        │ Porciones estimadas por turno │ Suma los 3 servicios          │
 └────────────────────┴──────────────────────────────┴──────────────────────────────┘
 ```
 

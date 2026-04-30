@@ -34,8 +34,7 @@ Endpoints principales bajo prefijo actual `/api/`.
     *   *Req Sprint 4:* `{ anio: 2026, mes: 4, estado: "BORRADOR" }`
 *   **PUT `/menus/:id`** - Actualizar cabecera del menú mensual.
 *   **POST `/menus/:id/items`** - Agregar plato al menú mensual.
-    *   *Req Sprint 4:* `{ semana: 1, dia: "Lunes", turno: "Almuerzo", plato_id: 3, porciones_estimadas: 120 }`
-    *   Nota: si no se envía `turno`, backend usa `Almuerzo` por defecto.
+    *   *Req Sprint 4:* `{ semana: 1, dia: "Lunes", turno: "Desayuno|Almuerzo|Cena", plato_id: 3, porciones_estimadas: 120 }`
 *   **PUT `/menus/:id/items/:itemId`** - Editar plato/día/porciones del menú.
 *   **DELETE `/menus/:id/items/:itemId`** - Quitar un plato del menú.
 *   **GET `/platos`** - Listar catálogo de platos activos.
@@ -50,7 +49,10 @@ Endpoints principales bajo prefijo actual `/api/`.
 *   **DELETE `/platos/:id/receta/:recetaId`** - Quitar insumo de receta.
 *   **GET `/menus/:id/requerimiento-semanal?semana=1`** - Calcular requerimiento consolidado de insumos para una semana.
     *   *Res Sprint 4:* `[{ insumo_id, nombre, unidad_medida, cantidad_requerida, porciones_totales }]`
-    *   Cálculo: sumatoria de `cantidad_por_porcion * porciones_estimadas` de cada plato programado en la semana.
+    *   Cálculo: sumatoria de `cantidad_por_porcion * porciones_estimadas` de cada plato programado en la semana, incluyendo desayuno, almuerzo y cena.
+*   **Carga desde Excel/CSV en UI** - La interfaz permite importar un CSV exportado desde Excel.
+    *   Columnas obligatorias: `semana,dia,turno,plato,porciones`.
+    *   Si el plato no existe, se crea automáticamente sin receta para completarla después.
 *   **POST `/cocina/retiros`** - Solicitud de despacho de almacén a cocina.
 *   **POST `/cocina/cambios`** - Registrar reporte de última hora sobre insumos.
 

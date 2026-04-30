@@ -40,7 +40,7 @@
 *   **MenuItem:** Ítem planificado dentro del menú mensual.
     *   `semana`: Número de semana del mes, de 1 a 4.
     *   `dia`: Día operativo (`Lunes` a `Domingo`).
-    *   `turno`: Por defecto `Almuerzo` mientras el sistema no maneje varios turnos.
+    *   `turno`: Servicio del día. Valores operativos Sprint 4: `Desayuno`, `Almuerzo`, `Cena`.
     *   `plato_id`: Plato asignado a ese día/semana/turno.
     *   `porciones_estimadas`: Cantidad base de porciones esperadas para calcular demanda.
 *   **Platos:** Catálogo de platos que el chef puede reutilizar en diferentes semanas.
@@ -53,7 +53,7 @@
     *   `cantidad_por_porcion`: Cantidad de insumo requerida para una porción del plato.
     *   `unidad_medida`: Unidad coherente con el insumo, usada para mostrar el cálculo.
 *   **Requerimiento Semanal:** Vista calculada, no necesariamente tabla física.
-    *   Se calcula como `cantidad_por_porcion * porciones_estimadas` para todos los platos de la semana.
+    *   Se calcula como `cantidad_por_porcion * porciones_estimadas` para todos los platos de la semana, sumando desayuno, almuerzo y cena.
     *   Agrupa por insumo para alimentar decisiones de cocina, inventario y futuras compras sugeridas.
 *   **AjustesReceta:** Bitácora por si cocinero debe sustituir ingredientes (CU17). En Sprint 4 queda documentado, no implementado como flujo principal.
 

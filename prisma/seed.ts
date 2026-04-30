@@ -123,7 +123,73 @@ async function main() {
     },
   });
 
-  console.log('Seed ejecutado correctamente:', { gerente, proveedor, plato, menu });
+  const desayuno = await prisma.plato.upsert({
+    where: { nombre: 'Avena con frutas' },
+    update: { descripcion: 'Desayuno base con cereal y fruta' },
+    create: {
+      nombre: 'Avena con frutas',
+      descripcion: 'Desayuno base con cereal y fruta',
+      estado: 'Activo',
+    },
+  });
+
+  const cena = await prisma.plato.upsert({
+    where: { nombre: 'Sopa de verduras' },
+    update: { descripcion: 'Cena ligera para servicio nocturno' },
+    create: {
+      nombre: 'Sopa de verduras',
+      descripcion: 'Cena ligera para servicio nocturno',
+      estado: 'Activo',
+    },
+  });
+
+  await prisma.menuItem.upsert({
+    where: {
+      menu_mes_id_semana_dia_turno: {
+        menu_mes_id: menu.id,
+        semana: 1,
+        dia: 'Lunes',
+        turno: 'Desayuno',
+      },
+    },
+    update: {
+      plato_id: desayuno.id,
+      porciones_estimadas: 80,
+    },
+    create: {
+      menu_mes_id: menu.id,
+      semana: 1,
+      dia: 'Lunes',
+      turno: 'Desayuno',
+      plato_id: desayuno.id,
+      porciones_estimadas: 80,
+    },
+  });
+
+  await prisma.menuItem.upsert({
+    where: {
+      menu_mes_id_semana_dia_turno: {
+        menu_mes_id: menu.id,
+        semana: 1,
+        dia: 'Lunes',
+        turno: 'Cena',
+      },
+    },
+    update: {
+      plato_id: cena.id,
+      porciones_estimadas: 90,
+    },
+    create: {
+      menu_mes_id: menu.id,
+      semana: 1,
+      dia: 'Lunes',
+      turno: 'Cena',
+      plato_id: cena.id,
+      porciones_estimadas: 90,
+    },
+  });
+
+  console.log('Seed ejecutado correctamente:', { gerente, proveedor, plato, desayuno, cena, menu });
 }
 
 main()
