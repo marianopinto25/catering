@@ -17,15 +17,20 @@ model Usuario {
   rol           String   // Ej: "Gerente", "Almacen", etc.
   nombre        String
   movimientos   MovimientoInventario[]
+  solicitudes   SolicitudInsumo[]
 }
 
 model Proveedor {
-  id           Int      @id @default(autoincrement())
-  nit_rut      String   @unique
-  razon_social String   @unique
-  telefono     String?
-  estado       String   @default("Activo") // "Activo" o "Inactivo" para borrado lógico
-  compras      Compra[]
+  id                    Int      @id @default(autoincrement())
+  nit_rut               String   @unique
+  razon_social          String   @unique
+  telefono              String?
+  responsable_nombre    String   @default("")
+  responsable_cargo     String   @default("")
+  responsable_telefono  String   @default("")
+  responsable_email     String   @default("")
+  estado                String   @default("Activo") // "Activo" o "Inactivo" para borrado lógico
+  compras               Compra[]
 }
 
 model Insumo {
@@ -38,6 +43,7 @@ model Insumo {
   compras_det    CompraDetalle[]
   inventarios    Inventario[]
   movimientos    MovimientoInventario[]
+  solicitudes     SolicitudInsumo[]
 }
 
 model Compra {
@@ -83,4 +89,16 @@ model MovimientoInventario {
   motivo           String?  // Compra, Ajuste, Vencimiento, Daño, etc.
   usuario_id       Int
   usuario          Usuario  @relation(fields: [usuario_id], references: [id])
+}
+
+model SolicitudInsumo {
+  id              Int      @id @default(autoincrement())
+  insumo_id       Int
+  insumo          Insumo   @relation(fields: [insumo_id], references: [id])
+  usuario_id      Int
+  usuario         Usuario  @relation(fields: [usuario_id], references: [id])
+  cantidad        Float
+  estado          String   @default("PENDIENTE") // PENDIENTE, ATENDIDA, CANCELADA
+  fecha_solicitud DateTime @default(now())
+  observacion     String?
 }

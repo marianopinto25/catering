@@ -12,6 +12,10 @@ const ProveedorForm: React.FC = () => {
   const [nit_rut, setNitRut] = useState('');
   const [razon_social, setRazonSocial] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [responsableNombre, setResponsableNombre] = useState('');
+  const [responsableCargo, setResponsableCargo] = useState('');
+  const [responsableTelefono, setResponsableTelefono] = useState('');
+  const [responsableEmail, setResponsableEmail] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -25,6 +29,10 @@ const ProveedorForm: React.FC = () => {
             setNitRut(target.nit_rut);
             setRazonSocial(target.razon_social);
             setTelefono(target.telefono || '');
+            setResponsableNombre(target.responsable_nombre || '');
+            setResponsableCargo(target.responsable_cargo || '');
+            setResponsableTelefono(target.responsable_telefono || '');
+            setResponsableEmail(target.responsable_email || '');
           }
         } catch (e) {
           console.error(e);
@@ -48,7 +56,15 @@ const ProveedorForm: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ nit_rut, razon_social, telefono }),
+        body: JSON.stringify({
+          nit_rut,
+          razon_social,
+          telefono,
+          responsable_nombre: responsableNombre,
+          responsable_cargo: responsableCargo,
+          responsable_telefono: responsableTelefono,
+          responsable_email: responsableEmail
+        }),
       });
 
       const data = await response.json();
@@ -105,6 +121,55 @@ const ProveedorForm: React.FC = () => {
               value={telefono} 
               onChange={e => setTelefono(e.target.value)} 
             />
+          </div>
+
+          <div style={{ margin: '1.5rem 0 1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Persona responsable</h3>
+            <div className="form-group">
+              <label className="form-label">Nombre del responsable</label>
+              <input
+                type="text"
+                className="input-field"
+                value={responsableNombre}
+                onChange={e => setResponsableNombre(e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Cargo</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={responsableCargo}
+                  onChange={e => setResponsableCargo(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Teléfono directo</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={responsableTelefono}
+                  onChange={e => setResponsableTelefono(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email del responsable</label>
+              <input
+                type="email"
+                className="input-field"
+                value={responsableEmail}
+                onChange={e => setResponsableEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           {error && <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>}

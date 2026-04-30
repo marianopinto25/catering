@@ -16,11 +16,20 @@ async function main() {
 
   const proveedor = await prisma.proveedor.upsert({
     where: { nit_rut: '12345678-9' },
-    update: {},
+    update: {
+      responsable_nombre: 'María López',
+      responsable_cargo: 'Ejecutiva comercial',
+      responsable_telefono: '+12345678',
+      responsable_email: 'maria.lopez@proveedor-lacteos.test',
+    },
     create: {
       nit_rut: '12345678-9',
       razon_social: 'Proveedor de Lácteos S.A.',
       telefono: '+12345678',
+      responsable_nombre: 'María López',
+      responsable_cargo: 'Ejecutiva comercial',
+      responsable_telefono: '+12345678',
+      responsable_email: 'maria.lopez@proveedor-lacteos.test',
       estado: 'Activo',
     },
   });

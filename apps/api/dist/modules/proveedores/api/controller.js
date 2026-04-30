@@ -15,8 +15,11 @@ const getProveedores = async (req, res) => {
 };
 exports.getProveedores = getProveedores;
 const createProveedor = async (req, res) => {
-    const { nit_rut, razon_social, telefono } = req.body;
+    const { nit_rut, razon_social, telefono, responsable_nombre, responsable_cargo, responsable_telefono, responsable_email } = req.body;
     try {
+        if (!responsable_nombre || !responsable_cargo || !responsable_telefono || !responsable_email) {
+            return res.status(400).json({ error: 'Datos del responsable incompletos' });
+        }
         const exist = await prisma_1.prisma.proveedor.findFirst({
             where: {
                 OR: [{ nit_rut }, { razon_social }]
@@ -26,7 +29,16 @@ const createProveedor = async (req, res) => {
             return res.status(400).json({ error: 'Proveedor ya registrado' });
         }
         const nuevo = await prisma_1.prisma.proveedor.create({
-            data: { nit_rut, razon_social, telefono, estado: 'Activo' }
+            data: {
+                nit_rut,
+                razon_social,
+                telefono,
+                responsable_nombre,
+                responsable_cargo,
+                responsable_telefono,
+                responsable_email,
+                estado: 'Activo'
+            }
         });
         res.status(201).json(nuevo);
     }
@@ -37,8 +49,11 @@ const createProveedor = async (req, res) => {
 exports.createProveedor = createProveedor;
 const editProveedor = async (req, res) => {
     const id = Number(req.params.id);
-    const { nit_rut, razon_social, telefono } = req.body;
+    const { nit_rut, razon_social, telefono, responsable_nombre, responsable_cargo, responsable_telefono, responsable_email } = req.body;
     try {
+        if (!responsable_nombre || !responsable_cargo || !responsable_telefono || !responsable_email) {
+            return res.status(400).json({ error: 'Datos del responsable incompletos' });
+        }
         const exist = await prisma_1.prisma.proveedor.findFirst({
             where: {
                 AND: [
@@ -52,7 +67,15 @@ const editProveedor = async (req, res) => {
         }
         const actualizado = await prisma_1.prisma.proveedor.update({
             where: { id },
-            data: { nit_rut, razon_social, telefono }
+            data: {
+                nit_rut,
+                razon_social,
+                telefono,
+                responsable_nombre,
+                responsable_cargo,
+                responsable_telefono,
+                responsable_email
+            }
         });
         res.json(actualizado);
     }

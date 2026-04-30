@@ -13,8 +13,20 @@ export const getProveedores = async (req: Request, res: Response) => {
 };
 
 export const createProveedor = async (req: Request, res: Response) => {
-  const { nit_rut, razon_social, telefono } = req.body;
+  const {
+    nit_rut,
+    razon_social,
+    telefono,
+    responsable_nombre,
+    responsable_cargo,
+    responsable_telefono,
+    responsable_email
+  } = req.body;
   try {
+    if (!responsable_nombre || !responsable_cargo || !responsable_telefono || !responsable_email) {
+      return res.status(400).json({ error: 'Datos del responsable incompletos' });
+    }
+
     const exist = await prisma.proveedor.findFirst({
       where: {
         OR: [{ nit_rut }, { razon_social }]
@@ -26,7 +38,16 @@ export const createProveedor = async (req: Request, res: Response) => {
     }
 
     const nuevo = await prisma.proveedor.create({
-      data: { nit_rut, razon_social, telefono, estado: 'Activo' }
+      data: {
+        nit_rut,
+        razon_social,
+        telefono,
+        responsable_nombre,
+        responsable_cargo,
+        responsable_telefono,
+        responsable_email,
+        estado: 'Activo'
+      }
     });
     
     res.status(201).json(nuevo);
@@ -37,8 +58,20 @@ export const createProveedor = async (req: Request, res: Response) => {
 
 export const editProveedor = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const { nit_rut, razon_social, telefono } = req.body;
+  const {
+    nit_rut,
+    razon_social,
+    telefono,
+    responsable_nombre,
+    responsable_cargo,
+    responsable_telefono,
+    responsable_email
+  } = req.body;
   try {
+    if (!responsable_nombre || !responsable_cargo || !responsable_telefono || !responsable_email) {
+      return res.status(400).json({ error: 'Datos del responsable incompletos' });
+    }
+
     const exist = await prisma.proveedor.findFirst({
       where: {
         AND: [
@@ -54,7 +87,15 @@ export const editProveedor = async (req: Request, res: Response) => {
 
     const actualizado = await prisma.proveedor.update({
       where: { id },
-      data: { nit_rut, razon_social, telefono }
+      data: {
+        nit_rut,
+        razon_social,
+        telefono,
+        responsable_nombre,
+        responsable_cargo,
+        responsable_telefono,
+        responsable_email
+      }
     });
     
     res.json(actualizado);

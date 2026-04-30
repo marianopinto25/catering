@@ -9,6 +9,10 @@ interface Proveedor {
   nit_rut: string;
   razon_social: string;
   telefono: string;
+  responsable_nombre: string;
+  responsable_cargo: string;
+  responsable_telefono: string;
+  responsable_email: string;
 }
 
 const ProveedoresList: React.FC = () => {
@@ -67,19 +71,27 @@ const ProveedoresList: React.FC = () => {
             <tr>
               <th>NIT / RUT</th>
               <th>Razón Social</th>
-              <th>Teléfono</th>
+              <th>Responsable</th>
+              <th>Contacto</th>
               <th style={{ width: '120px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {proveedores.length === 0 ? (
-              <tr><td colSpan={4} style={{ textAlign: 'center' }}>No hay proveedores registrados.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No hay proveedores registrados.</td></tr>
             ) : (
               proveedores.map(p => (
                 <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <td>{p.nit_rut}</td>
                   <td>{p.razon_social}</td>
-                  <td>{p.telefono || '-'}</td>
+                  <td>
+                    <strong>{p.responsable_nombre || '-'}</strong><br />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.responsable_cargo || '-'}</span>
+                  </td>
+                  <td>
+                    {p.responsable_telefono || p.telefono || '-'}<br />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.responsable_email || '-'}</span>
+                  </td>
                   <td style={{ display: 'flex', gap: '0.5rem' }}>
                     <Link to={`/proveedores/${p.id}/editar`} className="btn-secondary" style={{ padding: '0.25rem 0.5rem' }}>
                       <Pencil size={16} />
