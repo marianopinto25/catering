@@ -32,8 +32,25 @@
     *   `Ajuste de Inventario`: Registrar vencido, dañado o sobrante como transacción de ajuste. CU-08, CU-09.
 
 ## 4. Menú y Cocina
-*   `GET /menu/calendario` -> Vista en formato calendario por día.
+*   `GET /menu` -> Pantalla principal de menú mensual multi-panel. Sprint 4.
+    *   **Panel izquierdo:** selector Semana 1, Semana 2, Semana 3, Semana 4; mes/año activo.
+    *   **Panel centro:** lista de días de la semana seleccionada con plato, turno `Almuerzo` y porciones estimadas.
+    *   **Panel derecho:** receta del plato seleccionado y requerimiento semanal consolidado por insumo.
+*   `GET /menu/platos` -> Gestión rápida de catálogo de platos y receta mínima.
+*   `GET /menu/calendario` -> Alias futuro o vista alternativa en formato calendario por día; no es prioridad Sprint 4.
 *   `GET /cocina/actual` -> Resumen de qué preparar hoy especial para el usuario "Cocinero". Botones para "Retirar Insumos" y "Reportar Incidencias".
+
+### Wireframe textual Sprint 4
+```text
+┌────────────────────┬──────────────────────────────┬──────────────────────────────┐
+│ Semana 1           │ Lunes    Almuerzo  Plato A    │ Plato seleccionado            │
+│ Semana 2           │ Martes   Almuerzo  Plato B    │ - Receta mínima               │
+│ Semana 3           │ Miércoles ...                 │   Insumo | Cant/porción       │
+│ Semana 4           │                              │                              │
+│ Mes/Año activo     │ + Agregar/editar plato día    │ Requerimiento semanal         │
+│                    │ Porciones estimadas por día   │ Insumo | Total requerido      │
+└────────────────────┴──────────────────────────────┴──────────────────────────────┘
+```
 
 ## 5. Comedor Front (Tableta o Kiosco)
 *   `GET /comedor` -> Módulo especial. UI máxima escala, enfocado en input rápido (lector QR o teclado número grande).

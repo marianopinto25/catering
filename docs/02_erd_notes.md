@@ -33,9 +33,29 @@
     *   `Solicitado (requested)`: Suma de solicitudes internas pendientes del chef/cocina.
 
 ## 3. Menú y Cocina
-*   **Menus:** Define el servicio planificado en una fecha específica (CU12, CU13).
-*   **Platos:** Componentes del Menú.
-*   **AjustesReceta:** Bitácora por si cocinero debe sustituir ingredientes (CU17).
+*   **MenuMes:** Cabecera del menú mensual. Agrupa la planificación por mes/año y permite organizar Semana 1 a Semana 4.
+    *   `anio`: Año operativo del menú.
+    *   `mes`: Mes operativo del menú (1-12).
+    *   `estado`: `BORRADOR`, `PUBLICADO` o `CERRADO`.
+*   **MenuItem:** Ítem planificado dentro del menú mensual.
+    *   `semana`: Número de semana del mes, de 1 a 4.
+    *   `dia`: Día operativo (`Lunes` a `Domingo`).
+    *   `turno`: Por defecto `Almuerzo` mientras el sistema no maneje varios turnos.
+    *   `plato_id`: Plato asignado a ese día/semana/turno.
+    *   `porciones_estimadas`: Cantidad base de porciones esperadas para calcular demanda.
+*   **Platos:** Catálogo de platos que el chef puede reutilizar en diferentes semanas.
+    *   `nombre`: Nombre visible del plato.
+    *   `descripcion`: Preparación o nota corta opcional.
+    *   `estado`: `Activo` o `Inactivo` para borrado lógico.
+*   **PlatoInsumo:** Receta mínima por plato.
+    *   `plato_id`: Plato al que pertenece el ingrediente.
+    *   `insumo_id`: Insumo requerido.
+    *   `cantidad_por_porcion`: Cantidad de insumo requerida para una porción del plato.
+    *   `unidad_medida`: Unidad coherente con el insumo, usada para mostrar el cálculo.
+*   **Requerimiento Semanal:** Vista calculada, no necesariamente tabla física.
+    *   Se calcula como `cantidad_por_porcion * porciones_estimadas` para todos los platos de la semana.
+    *   Agrupa por insumo para alimentar decisiones de cocina, inventario y futuras compras sugeridas.
+*   **AjustesReceta:** Bitácora por si cocinero debe sustituir ingredientes (CU17). En Sprint 4 queda documentado, no implementado como flujo principal.
 
 ## 4. Consumo y Asistencia (Comensales)
 *   **EmpresaCliente:** La constructora u organización que paga el servicio de alimentación.

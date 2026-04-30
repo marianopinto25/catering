@@ -70,17 +70,36 @@ erDiagram
     }
 
     %% Módulo Menú y Cocina
-    Menus {
+    MenuMes {
         int id PK
-        date fecha
-        string tipo "Desayuno, Almuerzo, Cena"
-        string estado "Planificado, Ejecución, Facturado"
+        int anio
+        int mes
+        string estado "BORRADOR, PUBLICADO, CERRADO"
+    }
+
+    MenuItem {
+        int id PK
+        int menu_mes_id FK
+        int plato_id FK
+        int semana "1, 2, 3, 4"
+        string dia "Lunes a Domingo"
+        string turno "Default: Almuerzo"
+        int porciones_estimadas
     }
 
     Platos {
         int id PK
-        int menu_id FK
+        string nombre
         string descripcion
+        string estado "Activo, Inactivo"
+    }
+
+    PlatoInsumo {
+        int id PK
+        int plato_id FK
+        int insumo_id FK
+        decimal cantidad_por_porcion
+        string unidad_medida
     }
 
     AjustesReceta {
@@ -108,7 +127,7 @@ erDiagram
     Consumos {
         int id PK
         int trabajador_id FK
-        int menu_id FK
+        int menu_item_id FK
         datetime fechahora_consumo
         boolean doble_racion
         boolean validado_offline
@@ -158,11 +177,14 @@ erDiagram
     Usuarios ||--o{ MovimientosInventario : "registra"
     Usuarios ||--o{ SolicitudesInsumo : "solicita"
 
-    Menus ||--|{ Platos : "ofrece"
+    MenuMes ||--|{ MenuItem : "planifica"
+    Platos ||--o{ MenuItem : "se programa en"
+    Platos ||--|{ PlatoInsumo : "usa"
+    Insumos ||--o{ PlatoInsumo : "compone receta"
     Platos ||--o{ AjustesReceta : "sufre modificaciones"
 
     TrabajadoresCliente ||--o{ Consumos : "realiza"
-    Menus ||--o{ Consumos : "se consume en"
+    MenuItem ||--o{ Consumos : "se consume en"
     Consumos ||--o| Feedback : "genera"
     EmpresaCliente ||--|{ TrabajadoresCliente : "emplea"
     EmpresaCliente ||--o{ Facturas : "paga"

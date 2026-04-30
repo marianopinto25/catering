@@ -29,8 +29,28 @@ Endpoints principales bajo prefijo actual `/api/`.
     *   Wording UI esperado: indicar qué puede afectar la preparación y con cuánta anticipación actuar.
 
 ## 3. Menú y Cocina
-*   **GET `/menus`** - Obtener planificación semanal (filtrado por fecha).
-*   **POST `/menus`** - Planificar el menú de la semana.
+*   **GET `/menus?anio=2026&mes=4`** - Obtener menú mensual con Semana 1-4, días, turno y plato asignado.
+*   **POST `/menus`** - Crear cabecera de menú mensual.
+    *   *Req Sprint 4:* `{ anio: 2026, mes: 4, estado: "BORRADOR" }`
+*   **PUT `/menus/:id`** - Actualizar cabecera del menú mensual.
+*   **POST `/menus/:id/items`** - Agregar plato al menú mensual.
+    *   *Req Sprint 4:* `{ semana: 1, dia: "Lunes", turno: "Almuerzo", plato_id: 3, porciones_estimadas: 120 }`
+    *   Nota: si no se envía `turno`, backend usa `Almuerzo` por defecto.
+*   **PUT `/menus/:id/items/:itemId`** - Editar plato/día/porciones del menú.
+*   **DELETE `/menus/:id/items/:itemId`** - Quitar un plato del menú.
+*   **GET `/platos`** - Listar catálogo de platos activos.
+*   **POST `/platos`** - Crear plato.
+    *   *Req Sprint 4:* `{ nombre, descripcion }`
+*   **PUT `/platos/:id`** - Editar plato.
+*   **DELETE `/platos/:id`** - Borrado lógico de plato.
+*   **GET `/platos/:id/receta`** - Obtener receta mínima de un plato.
+*   **POST `/platos/:id/receta`** - Agregar insumo a receta.
+    *   *Req Sprint 4:* `{ insumo_id, cantidad_por_porcion, unidad_medida }`
+*   **PUT `/platos/:id/receta/:recetaId`** - Editar cantidad por porción de un insumo.
+*   **DELETE `/platos/:id/receta/:recetaId`** - Quitar insumo de receta.
+*   **GET `/menus/:id/requerimiento-semanal?semana=1`** - Calcular requerimiento consolidado de insumos para una semana.
+    *   *Res Sprint 4:* `[{ insumo_id, nombre, unidad_medida, cantidad_requerida, porciones_totales }]`
+    *   Cálculo: sumatoria de `cantidad_por_porcion * porciones_estimadas` de cada plato programado en la semana.
 *   **POST `/cocina/retiros`** - Solicitud de despacho de almacén a cocina.
 *   **POST `/cocina/cambios`** - Registrar reporte de última hora sobre insumos.
 
