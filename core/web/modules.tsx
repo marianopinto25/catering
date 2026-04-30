@@ -14,6 +14,7 @@ import NuevaCompraForm from '../../modules/compras/ui/NuevaCompraForm';
 import InventarioPage from '../../modules/inventario/ui/InventarioPage';
 import IngresoInventarioForm from '../../modules/inventario/ui/IngresoInventarioForm';
 import AlertasPage from '../../modules/alertas/ui/AlertasPage';
+import MenuMensualPage from '../../modules/menu/ui/MenuMensualPage';
 import Dashboard from '../../apps/web/src/Dashboard';
 
 // Rutas públicas (sin layout)
@@ -40,4 +41,7 @@ export const protectedRoutes: RouteObject[] = [
   { path: '/inventario/ingreso',    element: <IngresoInventarioForm /> },
   // --- módulo/alertas ---
   { path: '/alertas',               element: <AlertasPage /> },
+  // --- módulo/menú ---
+  { path: '/menu',                   element: <MenuMensualPage /> },
+  { path: '/menu/platos',            element: <MenuMensualPage /> },
 ];

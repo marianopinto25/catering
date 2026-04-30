@@ -9,7 +9,8 @@ import {
   ShoppingBag,
   Package,
   AlertCircle,
-  Shapes
+  Shapes,
+  Utensils
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -29,6 +30,7 @@ const Sidebar: React.FC = () => {
     { to: '/compras', icon: <ShoppingBag size={20} />, label: 'Compras' },
     { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
     { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
+    { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
   ];
 
   return (
