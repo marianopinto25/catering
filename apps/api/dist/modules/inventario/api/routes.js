@@ -38,6 +38,7 @@ const InventarioController = __importStar(require("./controller"));
 const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
+router.get('/resumen', InventarioController.getResumenInventario);
 router.get('/', InventarioController.getInventario);
 router.post('/movimientos', InventarioController.ingresarCompraInventario);
 router.post('/merma', InventarioController.registrarMerma);

@@ -89,7 +89,49 @@ export const getInventario = async (req: Request, res: Response) => {
 };
 
 /**
- * CU-08 / CU-09: Registrar producto vencido / dañado (Merma)
+ * Sprint 3: resumen operativo de inventario.
+ * Existencia = físico en almacén, En orden = compras pendientes, Solicitado = pedidos internos pendientes.
+ */
+export const getResumenInventario = async (req: Request, res: Response) => {
+  try {
+    const insumos = await prisma.insumo.findMany({
+      where: { estado: 'Activo' },
+      orderBy: { nombre: 'asc' },
+      include: {
+        inventarios: {
+          where: { cantidad_actual: { gt: 0 }, estado: 'Disponible' }
+        },
+        compras_det: {
+          where: { compra: { estado: 'PENDIENTE_INGRESO' } },
+          select: { cantidad: true }
+        },
+        solicitudes: {
+          where: { estado: 'PENDIENTE' },
+          select: { cantidad: true }
+        }
+      }
+    });
+
+    const resumen = insumos.map((insumo) => ({
+      insumo_id: insumo.id,
+      nombre: insumo.nombre,
+      unidad_medida: insumo.unidad_medida,
+      categoria: insumo.categoria,
+      stock_minimo: insumo.stock_minimo,
+      onHand: insumo.inventarios.reduce((acc, inv) => acc + inv.cantidad_actual, 0),
+      onOrder: insumo.compras_det.reduce((acc, det) => acc + det.cantidad, 0),
+      requested: insumo.solicitudes.reduce((acc, solicitud) => acc + solicitud.cantidad, 0)
+    }));
+
+    res.json(resumen);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al consultar resumen de inventario' });
+  }
+};
+
+/**
+ * CU-08 / CU-09: Registrar ajuste por producto vencido / dañado.
  */
 export const registrarMerma = async (req: Request, res: Response) => {
   const { inventario_id, cantidad, motivo } = req.body; // motivo: Vencimiento o Daño
@@ -113,12 +155,12 @@ export const registrarMerma = async (req: Request, res: Response) => {
         }
       });
 
-      // 2. Registrar movimiento de merma
+      // 2. Registrar movimiento de ajuste
       await tx.movimientoInventario.create({
         data: {
           insumo_id: itemInventario.insumo_id,
           inventario_id: itemInventario.id,
-          tipo_movimiento: 'Merma',
+          tipo_movimiento: 'Ajuste',
           cantidad: cantidad,
           motivo: motivo, // Ej: "Vencido" o "Dañado"
           usuario_id
@@ -128,8 +170,8 @@ export const registrarMerma = async (req: Request, res: Response) => {
       return updatedInventario;
     });
 
-    res.json({ message: 'Merma registrada con éxito', inventario: result });
+    res.json({ message: 'Ajuste registrado con éxito', inventario: result });
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Error al registrar merma' });
+    res.status(400).json({ error: error.message || 'Error al registrar ajuste' });
   }
 };

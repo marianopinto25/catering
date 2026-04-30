@@ -6,6 +6,7 @@ const router = Router();
 
 router.use(authenticateToken);
 
+router.get('/resumen', InventarioController.getResumenInventario);
 router.get('/', InventarioController.getInventario);
 router.post('/movimientos', InventarioController.ingresarCompraInventario);
 router.post('/merma', InventarioController.registrarMerma);
