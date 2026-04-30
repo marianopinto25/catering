@@ -1,27 +1,35 @@
 # UI Routes & Pantallas (React)
 
 ## Layout Principal
-`Route: /` -> Componente base que verifica el Login y el Rol del usuario. En caso válido inyecta el `Sidebar` (Dashboard, Proveedores, Inventario, Menú, Comedor, Reportes, Usuarios) y un `TopBar` (Notificaciones/Alertas, Usuario).
+`Route: /` -> Componente base que verifica el Login y el Rol del usuario. En caso válido inyecta el `Sidebar` (Manejo de Inventarios y Compras, Proveedores, Inventario, Menú, Comedor, Reportes, Usuarios) y un `TopBar` (Notificaciones/Alertas, Usuario).
 
 *Estilo General:* Fondo de la app blanco o ligeramente gris (`#FAFAFA`). Tarjetas blancas con algo de sombra, bordes redondeados. Textos en negro o grices oscuros (Inter font). Microinteracciones usando `framer-motion` (ej. fade-in de modales, opacidad en lista).
 
-## 1. Dashboard (Todas las visuales)
+## 1. Manejo de Inventarios y Compras
 *   `GET /dashboard`
-    1. Tarjetas Superiores (Cards minimalistas): Consumos de hoy, Stock Alertas.
-    2. Tabla resumen (menú del día).
+    1. Título visible: **Manejo de Inventarios y Compras**.
+    2. Tarjetas superiores: alertas de inventario, compras pendientes de ingreso y próximos vencimientos.
+    3. No usar el texto "Panel de control" ni "Dashboard" en labels visibles para el usuario.
 
-## 2. Pautas y Compras
+## 2. Proveedores y Compras
+*   `GET /proveedores` -> Listado de proveedores, mostrando empresa y persona responsable.
+*   `GET /proveedores/nuevo` -> Formulario de proveedor con responsable: nombre, cargo, teléfono y email.
+*   `GET /proveedores/:id/editar` -> Edición de empresa y responsable.
 *   `GET /compras` -> Listado histórico de facturas de compra.
 *   `GET /compras/nueva` -> Formulario Wizard para registrar compra. Permite buscar insumos existentes o crear uno rápido. Gatilla CU-04.
 
 ## 3. Inventario y Alertas
 *   `GET /insumos` -> Catálogo maestro de insumos (CRUD básico). CU-06.
 *   `GET /insumos/:id/editar` -> Edición de stock mínimo, nombre, unidad. CU-06.
-*   `GET /inventario` -> Vista de stock actual consolidado y por lotes. CU-07.
-*   `GET /alertas` -> Panel central de alertas. CU-10 y CU-11.
+*   `GET /inventario` -> Vista de resumen por insumo. Debe mostrar las columnas:
+    *   Existencia (`onHand`)
+    *   En orden (`onOrder`)
+    *   Solicitado (`requested`)
+    *   No mostrar "estado" como columna principal para usuario.
+*   `GET /alertas` -> Alertas redactadas para anticipación del chef/cocina. CU-10 y CU-11.
 *   **Modales Operativos**:
     *   `Ingresar Insumo`: Formulario manual (CU-05).
-    *   `Marcar Vencido/Dañado`: Cambio de estado de un lote (CU-08, CU-09).
+    *   `Ajuste de Inventario`: Registrar vencido, dañado o sobrante como transacción de ajuste. CU-08, CU-09.
 
 ## 4. Menú y Cocina
 *   `GET /menu/calendario` -> Vista en formato calendario por día.

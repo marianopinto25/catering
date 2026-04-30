@@ -1,8 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { 
-  LayoutDashboard, 
+import {
+  ClipboardList,
   Truck, 
   LogOut,
   User,
@@ -23,7 +23,7 @@ const Sidebar: React.FC = () => {
   };
 
   const navItems = [
-    { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { to: '/dashboard', icon: <ClipboardList size={20} />, label: 'Manejo Inv. y Compras' },
     { to: '/proveedores', icon: <Truck size={20} />, label: 'Proveedores' },
     { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
     { to: '/compras', icon: <ShoppingBag size={20} />, label: 'Compras' },

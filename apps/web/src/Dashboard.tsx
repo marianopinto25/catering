@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@core/AuthContext';
-import { PackageOpen, Users, AlertTriangle, TrendingUp } from 'lucide-react';
+import { PackageOpen, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ResumenAlertas {
@@ -36,21 +36,21 @@ const Dashboard: React.FC = () => {
       title: 'Stock Bajo Mínimo', 
       value: alertas.totalBajoStock, 
       icon: <PackageOpen size={24} color={alertas.totalBajoStock > 0 ? "#ef4444" : "#000"} />, 
-      desc: 'Insumos que requieren compra',
+      desc: 'Puede afectar próximas preparaciones',
       action: () => navigate('/alertas')
     },
     { 
-      title: 'Alertas Vencimiento', 
+      title: 'Uso antes de vencer', 
       value: alertas.totalVencimiento, 
       icon: <AlertTriangle size={24} color={alertas.totalVencimiento > 0 ? "#ef4444" : "#000"} />, 
-      desc: 'Lotes próximos a caducar',
+      desc: 'Priorizar en cocina',
       action: () => navigate('/alertas')
     },
     { 
       title: 'Compras Pendientes', 
       value: '-', 
       icon: <TrendingUp size={24} color="#000" />, 
-      desc: 'Facturas por recibir',
+      desc: 'Insumos ordenados por recibir',
       action: () => navigate('/compras')
     }
   ];
@@ -58,7 +58,7 @@ const Dashboard: React.FC = () => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <header style={{ marginBottom: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Panel de Control</h2>
+        <h2 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Manejo de Inventarios y Compras</h2>
         <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
           Bienvenido de nuevo, {user?.nombre}. Gestión de El Junte.
         </p>

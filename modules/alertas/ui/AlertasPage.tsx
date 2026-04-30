@@ -52,10 +52,10 @@ const AlertasPage: React.FC = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <AlertTriangle size={24} color="var(--danger-color)" /> Panel de Alertas y Notificaciones
+          <AlertTriangle size={24} color="var(--danger-color)" /> Alertas para anticipar cocina
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <label className="form-label" style={{ margin: 0 }}>Umbral vencimiento (días):</label>
+          <label className="form-label" style={{ margin: 0 }}>Anticipación de uso (días):</label>
           <input 
             type="number" 
             className="input-field" 
@@ -72,7 +72,7 @@ const AlertasPage: React.FC = () => {
         {/* Alertas de Bajo Stock */}
         <section>
           <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={20} /> Bajo Stock ({bajoStock.length})
+            <Package size={20} /> Reponer antes de cocinar ({bajoStock.length})
           </h3>
           <div className="card" style={{ padding: 0 }}>
             <table className="table-container">
@@ -85,7 +85,7 @@ const AlertasPage: React.FC = () => {
               </thead>
               <tbody>
                 {bajoStock.length === 0 ? (
-                  <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem' }}>No hay alertas de stock.</td></tr>
+                  <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem' }}>Hay existencia suficiente para preparar.</td></tr>
                 ) : (
                   bajoStock.map(a => (
                     <tr key={a.id}>
@@ -103,7 +103,7 @@ const AlertasPage: React.FC = () => {
         {/* Alertas de Vencimiento */}
         <section>
           <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={20} /> Próximos a Vencer ({vencimiento.length})
+            <Calendar size={20} /> Usar primero ({vencimiento.length})
           </h3>
           <div className="card" style={{ padding: 0 }}>
             <table className="table-container">
@@ -116,7 +116,7 @@ const AlertasPage: React.FC = () => {
               </thead>
               <tbody>
                 {vencimiento.length === 0 ? (
-                  <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem' }}>No hay vencimientos próximos.</td></tr>
+                  <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem' }}>No hay lotes que requieran uso anticipado.</td></tr>
                 ) : (
                   vencimiento.map(v => (
                     <tr key={v.id}>
@@ -140,7 +140,7 @@ const AlertasPage: React.FC = () => {
 
       <div style={{ marginTop: '2rem', textAlign: 'right' }}>
         <Link to="/inventario" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem', color: 'var(--text-muted)' }}>
-          Gestionar Inventario <ChevronRight size={16} />
+          Revisar inventario <ChevronRight size={16} />
         </Link>
       </div>
     </motion.div>

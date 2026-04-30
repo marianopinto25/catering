@@ -6,6 +6,10 @@ erDiagram
         string nit_rut "Único"
         string razon_social
         string telefono
+        string responsable_nombre
+        string responsable_cargo
+        string responsable_telefono
+        string responsable_email
         string estado "Activo/Inactivo"
     }
 
@@ -41,18 +45,28 @@ erDiagram
         decimal cantidad_actual
         date fecha_vencimiento
         string lote "Código de lote opcional"
-        string estado "Disponible, Vencido, Dañado"
+        string estado "Interno: Disponible/Inactivo técnico"
     }
 
     MovimientosInventario {
         int id PK
         int insumo_id FK
         int inventario_id FK "Relaciona al lote específico"
-        string tipo_movimiento "Ingreso, Salida, Merma"
+        string tipo_movimiento "Ingreso, Salida, Ajuste"
         decimal cantidad
         datetime fecha
-        string motivo "Compra, Ajuste, Vencimiento, etc."
+        string motivo "Compra, Cocina, Vencido, Dañado, Sobrante"
         int usuario_id FK
+    }
+
+    SolicitudesInsumo {
+        int id PK
+        int insumo_id FK
+        int usuario_id FK "Chef/Cocina solicitante"
+        decimal cantidad
+        string estado "PENDIENTE, ATENDIDA, CANCELADA"
+        datetime fecha_solicitud
+        string observacion
     }
 
     %% Módulo Menú y Cocina
@@ -140,7 +154,9 @@ erDiagram
 
     Insumos ||--o{ Inventario : "almacenado"
     Insumos ||--o{ MovimientosInventario : "tiene"
+    Insumos ||--o{ SolicitudesInsumo : "solicitado por cocina"
     Usuarios ||--o{ MovimientosInventario : "registra"
+    Usuarios ||--o{ SolicitudesInsumo : "solicita"
 
     Menus ||--|{ Platos : "ofrece"
     Platos ||--o{ AjustesReceta : "sufre modificaciones"
