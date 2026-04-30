@@ -44,6 +44,7 @@ model Insumo {
   inventarios    Inventario[]
   movimientos    MovimientoInventario[]
   solicitudes     SolicitudInsumo[]
+  recetas         PlatoInsumo[]
 }
 
 model Compra {
@@ -101,4 +102,49 @@ model SolicitudInsumo {
   estado          String   @default("PENDIENTE") // PENDIENTE, ATENDIDA, CANCELADA
   fecha_solicitud DateTime @default(now())
   observacion     String?
+}
+
+model Plato {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique
+  descripcion String?
+  estado      String   @default("Activo")
+  receta      PlatoInsumo[]
+  menu_items  MenuItem[]
+}
+
+model PlatoInsumo {
+  id                    Int    @id @default(autoincrement())
+  plato_id              Int
+  plato                 Plato  @relation(fields: [plato_id], references: [id])
+  insumo_id             Int
+  insumo                Insumo @relation(fields: [insumo_id], references: [id])
+  cantidad_por_porcion  Float
+  unidad_medida         String
+
+  @@unique([plato_id, insumo_id])
+}
+
+model MenuMes {
+  id        Int        @id @default(autoincrement())
+  anio      Int
+  mes       Int
+  estado    String     @default("BORRADOR")
+  items     MenuItem[]
+
+  @@unique([anio, mes])
+}
+
+model MenuItem {
+  id                   Int      @id @default(autoincrement())
+  menu_mes_id          Int
+  menu_mes             MenuMes  @relation(fields: [menu_mes_id], references: [id])
+  plato_id             Int
+  plato                Plato    @relation(fields: [plato_id], references: [id])
+  semana               Int
+  dia                  String
+  turno                String   @default("Almuerzo")
+  porciones_estimadas  Int
+
+  @@unique([menu_mes_id, semana, dia, turno])
 }

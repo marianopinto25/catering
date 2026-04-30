@@ -1,0 +1,364 @@
+import { Request, Response } from 'express';
+import { prisma } from '../../../core/api/prisma';
+
+const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+const parseId = (value: string) => Number(value);
+
+const validateSemana = (semana: number) => Number.isInteger(semana) && semana >= 1 && semana <= 4;
+
+const ensureMenuEditable = async (id: number) => {
+  const menu = await prisma.menuMes.findUnique({ where: { id } });
+  if (!menu) throw new Error('Menú no encontrado');
+  if (menu.estado === 'CERRADO') throw new Error('El menú está cerrado y no se puede editar');
+  return menu;
+};
+
+export const getPlatos = async (_req: Request, res: Response) => {
+  try {
+    const platos = await prisma.plato.findMany({
+      where: { estado: 'Activo' },
+      orderBy: { nombre: 'asc' },
+      include: {
+        receta: {
+          include: { insumo: true },
+          orderBy: { insumo: { nombre: 'asc' } }
+        }
+      }
+    });
+    res.json(platos);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener platos' });
+  }
+};
+
+export const createPlato = async (req: Request, res: Response) => {
+  const { nombre, descripcion } = req.body;
+  try {
+    if (!nombre) return res.status(400).json({ error: 'El nombre del plato es obligatorio' });
+
+    const plato = await prisma.plato.create({
+      data: { nombre, descripcion, estado: 'Activo' }
+    });
+
+    res.status(201).json(plato);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Plato ya registrado' });
+    res.status(500).json({ error: 'Error al crear plato' });
+  }
+};
+
+export const updatePlato = async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  const { nombre, descripcion } = req.body;
+  try {
+    if (!nombre) return res.status(400).json({ error: 'El nombre del plato es obligatorio' });
+
+    const plato = await prisma.plato.update({
+      where: { id },
+      data: { nombre, descripcion }
+    });
+
+    res.json(plato);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Plato ya registrado' });
+    res.status(500).json({ error: 'Error al actualizar plato' });
+  }
+};
+
+export const deletePlato = async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  try {
+    await prisma.plato.update({
+      where: { id },
+      data: { estado: 'Inactivo' }
+    });
+    res.json({ message: 'Plato eliminado (Inactivo)' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar plato' });
+  }
+};
+
+export const getReceta = async (req: Request, res: Response) => {
+  const plato_id = parseId(req.params.id);
+  try {
+    const receta = await prisma.platoInsumo.findMany({
+      where: { plato_id },
+      include: { insumo: true },
+      orderBy: { insumo: { nombre: 'asc' } }
+    });
+
+    res.json(receta);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener receta' });
+  }
+};
+
+export const addRecetaItem = async (req: Request, res: Response) => {
+  const plato_id = parseId(req.params.id);
+  const { insumo_id, cantidad_por_porcion, unidad_medida } = req.body;
+  const cantidad = Number(cantidad_por_porcion);
+
+  try {
+    if (!insumo_id || !unidad_medida || cantidad <= 0) {
+      return res.status(400).json({ error: 'Insumo, unidad y cantidad por porción son obligatorios' });
+    }
+
+    const item = await prisma.platoInsumo.upsert({
+      where: { plato_id_insumo_id: { plato_id, insumo_id: Number(insumo_id) } },
+      create: {
+        plato_id,
+        insumo_id: Number(insumo_id),
+        cantidad_por_porcion: cantidad,
+        unidad_medida
+      },
+      update: {
+        cantidad_por_porcion: cantidad,
+        unidad_medida
+      },
+      include: { insumo: true }
+    });
+
+    res.status(201).json(item);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al guardar insumo de receta' });
+  }
+};
+
+export const updateRecetaItem = async (req: Request, res: Response) => {
+  const id = parseId(req.params.recetaId);
+  const { cantidad_por_porcion, unidad_medida } = req.body;
+  const cantidad = Number(cantidad_por_porcion);
+
+  try {
+    if (!unidad_medida || cantidad <= 0) {
+      return res.status(400).json({ error: 'Unidad y cantidad por porción son obligatorias' });
+    }
+
+    const item = await prisma.platoInsumo.update({
+      where: { id },
+      data: { cantidad_por_porcion: cantidad, unidad_medida },
+      include: { insumo: true }
+    });
+
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar receta' });
+  }
+};
+
+export const deleteRecetaItem = async (req: Request, res: Response) => {
+  const id = parseId(req.params.recetaId);
+  try {
+    await prisma.platoInsumo.delete({ where: { id } });
+    res.json({ message: 'Insumo removido de la receta' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar insumo de receta' });
+  }
+};
+
+export const getMenus = async (req: Request, res: Response) => {
+  const anio = Number(req.query.anio);
+  const mes = Number(req.query.mes);
+
+  try {
+    const where = anio && mes ? { anio, mes } : {};
+    const menus = await prisma.menuMes.findMany({
+      where,
+      orderBy: [{ anio: 'desc' }, { mes: 'desc' }],
+      include: {
+        items: {
+          orderBy: [{ semana: 'asc' }, { dia: 'asc' }],
+          include: {
+            plato: {
+              include: {
+                receta: { include: { insumo: true } }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.json(anio && mes ? menus[0] || null : menus);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener menú mensual' });
+  }
+};
+
+export const createMenu = async (req: Request, res: Response) => {
+  const { anio, mes, estado } = req.body;
+
+  try {
+    const menu = await prisma.menuMes.create({
+      data: {
+        anio: Number(anio),
+        mes: Number(mes),
+        estado: estado || 'BORRADOR'
+      }
+    });
+
+    res.status(201).json(menu);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Ya existe un menú para ese mes' });
+    res.status(500).json({ error: 'Error al crear menú mensual' });
+  }
+};
+
+export const updateMenu = async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  const { anio, mes, estado } = req.body;
+
+  try {
+    const menu = await prisma.menuMes.update({
+      where: { id },
+      data: {
+        anio: Number(anio),
+        mes: Number(mes),
+        estado: estado || 'BORRADOR'
+      }
+    });
+
+    res.json(menu);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Ya existe un menú para ese mes' });
+    res.status(500).json({ error: 'Error al actualizar menú mensual' });
+  }
+};
+
+export const addMenuItem = async (req: Request, res: Response) => {
+  const menu_mes_id = parseId(req.params.id);
+  const { semana, dia, turno, plato_id, porciones_estimadas } = req.body;
+  const semanaNumber = Number(semana);
+  const turnoFinal = turno || 'Almuerzo';
+  const porciones = Number(porciones_estimadas);
+
+  try {
+    await ensureMenuEditable(menu_mes_id);
+    if (!validateSemana(semanaNumber) || !DIAS_VALIDOS.includes(dia) || !plato_id || porciones <= 0) {
+      return res.status(400).json({ error: 'Semana, día, plato y porciones son obligatorios' });
+    }
+
+    const item = await prisma.menuItem.upsert({
+      where: {
+        menu_mes_id_semana_dia_turno: {
+          menu_mes_id,
+          semana: semanaNumber,
+          dia,
+          turno: turnoFinal
+        }
+      },
+      create: {
+        menu_mes_id,
+        semana: semanaNumber,
+        dia,
+        turno: turnoFinal,
+        plato_id: Number(plato_id),
+        porciones_estimadas: porciones
+      },
+      update: {
+        plato_id: Number(plato_id),
+        porciones_estimadas: porciones
+      },
+      include: { plato: true }
+    });
+
+    res.status(201).json(item);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Error al guardar ítem del menú' });
+  }
+};
+
+export const updateMenuItem = async (req: Request, res: Response) => {
+  const menu_mes_id = parseId(req.params.id);
+  const id = parseId(req.params.itemId);
+  const { semana, dia, turno, plato_id, porciones_estimadas } = req.body;
+  const semanaNumber = Number(semana);
+  const porciones = Number(porciones_estimadas);
+
+  try {
+    await ensureMenuEditable(menu_mes_id);
+    if (!validateSemana(semanaNumber) || !DIAS_VALIDOS.includes(dia) || !plato_id || porciones <= 0) {
+      return res.status(400).json({ error: 'Semana, día, plato y porciones son obligatorios' });
+    }
+
+    const item = await prisma.menuItem.update({
+      where: { id },
+      data: {
+        semana: semanaNumber,
+        dia,
+        turno: turno || 'Almuerzo',
+        plato_id: Number(plato_id),
+        porciones_estimadas: porciones
+      },
+      include: { plato: true }
+    });
+
+    res.json(item);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Ya existe un plato para ese día y turno' });
+    res.status(400).json({ error: error.message || 'Error al actualizar ítem del menú' });
+  }
+};
+
+export const deleteMenuItem = async (req: Request, res: Response) => {
+  const menu_mes_id = parseId(req.params.id);
+  const id = parseId(req.params.itemId);
+  try {
+    await ensureMenuEditable(menu_mes_id);
+    await prisma.menuItem.delete({ where: { id } });
+    res.json({ message: 'Ítem removido del menú' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Error al eliminar ítem del menú' });
+  }
+};
+
+export const getRequerimientoSemanal = async (req: Request, res: Response) => {
+  const menu_mes_id = parseId(req.params.id);
+  const semana = Number(req.query.semana);
+
+  try {
+    if (!validateSemana(semana)) return res.status(400).json({ error: 'Semana inválida' });
+
+    const items = await prisma.menuItem.findMany({
+      where: { menu_mes_id, semana },
+      include: {
+        plato: {
+          include: {
+            receta: {
+              include: { insumo: true }
+            }
+          }
+        }
+      }
+    });
+
+    const acumulado = new Map<number, {
+      insumo_id: number;
+      nombre: string;
+      unidad_medida: string;
+      cantidad_requerida: number;
+      porciones_totales: number;
+    }>();
+
+    for (const item of items) {
+      for (const receta of item.plato.receta) {
+        const actual = acumulado.get(receta.insumo_id) || {
+          insumo_id: receta.insumo_id,
+          nombre: receta.insumo.nombre,
+          unidad_medida: receta.unidad_medida,
+          cantidad_requerida: 0,
+          porciones_totales: 0
+        };
+
+        actual.cantidad_requerida += receta.cantidad_por_porcion * item.porciones_estimadas;
+        actual.porciones_totales += item.porciones_estimadas;
+        acumulado.set(receta.insumo_id, actual);
+      }
+    }
+
+    res.json(Array.from(acumulado.values()).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+  } catch (error) {
+    res.status(500).json({ error: 'Error al calcular requerimiento semanal' });
+  }
+};

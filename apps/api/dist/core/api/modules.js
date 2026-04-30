@@ -10,6 +10,7 @@ const routes_3 = __importDefault(require("../../modules/insumos/api/routes"));
 const routes_4 = __importDefault(require("../../modules/compras/api/routes"));
 const routes_5 = __importDefault(require("../../modules/inventario/api/routes"));
 const routes_6 = __importDefault(require("../../modules/alertas/api/routes"));
+const routes_7 = require("../../modules/menu/api/routes");
 exports.activeModules = [
     { path: '/api/auth', router: routes_1.default },
     { path: '/api/proveedores', router: routes_2.default },
@@ -17,4 +18,6 @@ exports.activeModules = [
     { path: '/api/compras', router: routes_4.default },
     { path: '/api/inventario', router: routes_5.default },
     { path: '/api/alertas', router: routes_6.default },
+    { path: '/api/menus', router: routes_7.menusRouter },
+    { path: '/api/platos', router: routes_7.platosRouter },
 ];
