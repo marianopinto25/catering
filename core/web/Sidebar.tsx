@@ -48,8 +48,8 @@ const Sidebar: React.FC = () => {
       boxShadow: '4px 0 10px rgba(0,0,0,0.02)',
       zIndex: 100
     }}>
-      <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#000' }}>
+      <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: 0, color: 'var(--primary-color)' }}>
           El Junte
         </h1>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', marginTop: '0.25rem' }}>
@@ -71,7 +71,7 @@ const Sidebar: React.FC = () => {
               textDecoration: 'none',
               borderRadius: '10px',
               marginBottom: '0.25rem',
-              background: isActive ? '#f1f5f9' : 'transparent',
+              background: isActive ? 'var(--soft-bg)' : 'transparent',
               fontWeight: isActive ? 600 : 400,
               transition: 'all 0.2s ease'
             })}
@@ -82,9 +82,9 @@ const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      <div style={{ padding: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
+      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary-color)', color: 'var(--secondary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem' }}>
             {user?.nombre.charAt(0)}
           </div>
           <div style={{ overflow: 'hidden' }}>
@@ -96,7 +96,7 @@ const Sidebar: React.FC = () => {
         <button 
           onClick={handleLogout}
           className="btn-secondary"
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: '1px solid #fee2e2', color: '#ef4444' }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: '1px solid var(--border-color)', color: 'var(--danger-color)' }}
         >
           <LogOut size={16} /> <span style={{ fontSize: '0.85rem' }}>Cerrar Sesión</span>
         </button>

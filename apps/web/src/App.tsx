@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../../../core/web/AuthContext';
 import Sidebar from '../../../core/web/Sidebar';
+import ThemeToggle from '../../../core/web/ThemeToggle';
 import { publicRoutes, protectedRoutes } from '../../../core/web/modules';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,6 +84,7 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <AuthProvider>
         <Router>
+          <ThemeToggle />
           <AppRoutes />
         </Router>
       </AuthProvider>
