@@ -40,5 +40,6 @@ const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
 router.post('/', ComprasController.registrarCompra);
 router.get('/', ComprasController.getCompras);
+router.get('/sugerencia', ComprasController.getSugerenciaCompra);
 router.get('/:id', ComprasController.getCompraById);
 exports.default = router;

@@ -8,6 +8,7 @@ router.use(authenticateToken);
 
 router.post('/', ComprasController.registrarCompra);
 router.get('/', ComprasController.getCompras);
+router.get('/sugerencia', ComprasController.getSugerenciaCompra);
 router.get('/:id', ComprasController.getCompraById);
 
 export default router;
