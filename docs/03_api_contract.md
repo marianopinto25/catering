@@ -10,6 +10,31 @@ Endpoints principales bajo prefijo actual `/api/`.
     *   *Req Sprint 3:* mismos campos de creación. Los campos de responsable son obligatorios para cumplir contacto real del proveedor.
 *   **POST `/compras`** - Registra compra y genera ingresos a inventario automáticamente.
     *   *Req:* `{ proveedor_id: 1, fecha: "2024-04-12", items: [{ insumo_id: 5, cantidad: 10, precio_unitario: 15.0, fecha_vencimiento: "2024-12-01" }] }`
+*   **GET `/compras/sugerencia?anio=2026&mes=4&semana=1`** - Calcula lista sugerida de compra basada en menú semanal, existencia y compras en orden.
+    *   *Req query Sprint 5:* `anio`, `mes`, `semana`.
+    *   *Res Sprint 5:*
+        ```json
+        {
+          "anio": 2026,
+          "mes": 4,
+          "semana": 1,
+          "items": [
+            {
+              "insumo_id": 1,
+              "nombre": "Arroz",
+              "unidad": "Kg",
+              "requerido": 14.4,
+              "existencia": 4,
+              "enOrden": 3,
+              "sugerido": 7.4,
+              "vida_util_dias": 7,
+              "limite_perecible": 14.4
+            }
+          ]
+        }
+        ```
+    *   Fórmula: `sugerido = min(max(0, requerido - (existencia + enOrden)), limite_perecible)`.
+    *   Las unidades se determinan desde la receta del plato (`PlatoInsumo.unidad_medida`).
 
 ## 2. Inventario y Alertas
 *   **GET `/insumos`** - Lista de insumos (Catálogo maestro).

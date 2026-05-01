@@ -16,7 +16,25 @@
 *   `GET /proveedores/nuevo` -> Formulario de proveedor con responsable: nombre, cargo, teléfono y email.
 *   `GET /proveedores/:id/editar` -> Edición de empresa y responsable.
 *   `GET /compras` -> Listado histórico de facturas de compra.
-*   `GET /compras/nueva` -> Formulario Wizard para registrar compra. Permite buscar insumos existentes o crear uno rápido. Gatilla CU-04.
+*   `GET /compras/nueva` -> Pantalla operativa multi-panel para registrar compra. Gatilla CU-04 y Sprint 5.
+    *   **Panel izquierdo:** proveedor, fecha, mes/semana del menú y acciones de guardado.
+    *   **Panel centro:** grilla editable de compra con insumo, unidad, cantidad, precio unitario y subtotal.
+    *   **Panel derecho superior:** menú de la semana seleccionada, solo lectura, agrupado por día y servicio.
+    *   **Panel derecho inferior:** sugerencia de compra por insumo con requerido, existencia, en orden y sugerido.
+    *   Acción principal: **Copiar sugerencia a la compra**, que llena la grilla central con las cantidades sugeridas.
+
+### Wireframe textual Sprint 5
+```text
+┌──────────────────────┬────────────────────────────────────┬─────────────────────────────┐
+│ Proveedor            │ Grilla de compra                    │ Menú semana seleccionada     │
+│ Fecha                │ Insumo | Unidad | Cant. | Precio    │ Día | Servicio | Plato       │
+│ Mes / Semana         │ Arroz  | Kg     | 7.4   | 0.00      │ Lunes Desayuno ...          │
+│ Guardar compra       │ + agregar/quitar línea              │                             │
+│                      │ Total compra                        │ Sugerencia de compra         │
+│                      │                                    │ Req | Exist | Orden | Sug    │
+│                      │                                    │ [Copiar sugerencia]          │
+└──────────────────────┴────────────────────────────────────┴─────────────────────────────┘
+```
 
 ## 3. Inventario y Alertas
 *   `GET /insumos` -> Catálogo maestro de insumos (CRUD básico). CU-06.
