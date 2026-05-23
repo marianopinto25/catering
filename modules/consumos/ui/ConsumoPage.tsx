@@ -24,7 +24,7 @@ interface Consumo {
 const today = () => new Date().toISOString().slice(0, 10);
 
 const ConsumoPage: React.FC = () => {
-  const { token, user } = useAuth();
+  const { token, role } = useAuth();
   const [searchParams] = useSearchParams();
   const [fecha, setFecha] = useState(today());
   const [turno, setTurno] = useState('Almuerzo');
@@ -111,7 +111,7 @@ const ConsumoPage: React.FC = () => {
     setStatus('Firma guardada. El consumo ya aparece firmado en el reporte diario.');
   };
 
-  const canOperate = user?.rol === 'Cliente' || user?.rol === 'Gerente';
+  const canOperate = role === 'CLIENTE' || role === 'GERENTE';
 
   if (!canOperate) {
     return <div className="card"><p className="error-text">Acceso denegado al módulo de consumo.</p></div>;
@@ -188,7 +188,7 @@ const ConsumoPage: React.FC = () => {
         {error && (
           <div style={{ border: '1px solid var(--danger-color)', borderRadius: '8px', padding: '0.9rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
             <strong>{error}</strong>
-            {user?.rol === 'Gerente' && (
+            {role === 'GERENTE' && (
               <Link to="/comedor/trabajadores" className="btn-secondary">
                 <UserPlus size={16} /> Registrar trabajador
               </Link>

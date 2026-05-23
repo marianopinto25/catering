@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validarReporteDiario = exports.getReporteDiario = void 0;
 const client_1 = require("@prisma/client");
 const prisma_1 = require("../../../core/api/prisma");
+const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const TURNOS = ['Desayuno', 'Almuerzo', 'Cena'];
 const parseFecha = (raw) => {
     const value = String(raw || '').trim();
@@ -68,7 +69,8 @@ const buildReporte = async (fecha, turno) => {
     };
 };
 const getReporteDiario = async (req, res) => {
-    if (req.user?.rol !== 'Cliente' && req.user?.rol !== 'Gerente')
+    const role = (0, auth_middleware_1.normalizeRole)(req.user?.rol);
+    if (role !== 'CLIENTE' && role !== 'GERENTE')
         return res.status(403).json({ error: 'Acceso denegado' });
     const fecha = parseFecha(req.query.fecha);
     const turno = String(req.query.turno || '').trim();
@@ -83,7 +85,7 @@ const getReporteDiario = async (req, res) => {
 };
 exports.getReporteDiario = getReporteDiario;
 const validarReporteDiario = async (req, res) => {
-    if (req.user?.rol !== 'Cliente')
+    if ((0, auth_middleware_1.normalizeRole)(req.user?.rol) !== 'CLIENTE')
         return res.status(403).json({ error: 'Solo el rol Cliente puede validar reportes' });
     const fecha = parseFecha(req.body.fecha);
     const turno = String(req.body.turno || '').trim();

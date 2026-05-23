@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../core/api/prisma';
-import { AuthRequest } from '../../../core/api/auth.middleware';
+import { AuthRequest, normalizeRole } from '../../../core/api/auth.middleware';
 
 const TURNOS = ['Desayuno', 'Almuerzo', 'Cena'];
 
@@ -73,7 +73,8 @@ const buildReporte = async (fecha: Date, turno: string) => {
 };
 
 export const getReporteDiario = async (req: AuthRequest, res: Response) => {
-  if (req.user?.rol !== 'Cliente' && req.user?.rol !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
+  const role = normalizeRole(req.user?.rol);
+  if (role !== 'CLIENTE' && role !== 'GERENTE') return res.status(403).json({ error: 'Acceso denegado' });
 
   const fecha = parseFecha(req.query.fecha);
   const turno = String(req.query.turno || '').trim();
@@ -87,7 +88,7 @@ export const getReporteDiario = async (req: AuthRequest, res: Response) => {
 };
 
 export const validarReporteDiario = async (req: AuthRequest, res: Response) => {
-  if (req.user?.rol !== 'Cliente') return res.status(403).json({ error: 'Solo el rol Cliente puede validar reportes' });
+  if (normalizeRole(req.user?.rol) !== 'CLIENTE') return res.status(403).json({ error: 'Solo el rol Cliente puede validar reportes' });
 
   const fecha = parseFecha(req.body.fecha);
   const turno = String(req.body.turno || '').trim();

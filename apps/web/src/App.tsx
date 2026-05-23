@@ -55,13 +55,23 @@ const RouteChangeLoader: React.FC = () => {
   );
 };
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+const homeForRole = (role?: string | null) => {
+  if (role === 'TRABAJADOR') return '/mi-consumo';
+  if (role === 'CHEF') return '/menu';
+  return '/dashboard';
+};
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
+  const { isAuthenticated, role } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const sidebarWidth = sidebarCollapsed ? 76 : 260;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (roles?.length && (!role || !roles.includes(role))) {
+    return <Navigate to={homeForRole(role)} replace />;
   }
 
   return (
@@ -94,11 +104,11 @@ const AppRoutes: React.FC = () => {
         <Route
           key={r.path as string}
           path={r.path as string}
-          element={<ProtectedRoute>{r.element}</ProtectedRoute>}
+          element={<ProtectedRoute roles={r.roles}>{r.element}</ProtectedRoute>}
         />
       ))}
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<RootRedirect />} />
       <Route path="*" element={
         <div style={{ padding: '2rem', textAlign: 'center' }}>
           <h2>404 - Página no encontrada</h2>
@@ -107,6 +117,11 @@ const AppRoutes: React.FC = () => {
       } />
     </Routes>
   );
+};
+
+const RootRedirect: React.FC = () => {
+  const { role, isAuthenticated } = useAuth();
+  return <Navigate to={isAuthenticated ? homeForRole(role) : '/login'} replace />;
 };
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {

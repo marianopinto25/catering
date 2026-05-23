@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { prisma } from '../../../core/api/prisma';
-import { AuthRequest } from '../../../core/api/auth.middleware';
+import { AuthRequest, normalizeRole } from '../../../core/api/auth.middleware';
 
-const canUseProduccion = (rol?: string) => ['Gerente', 'Cocinero', 'Almacen', 'Almacén'].includes(rol || '');
+const canUseProduccion = (rol?: string) => normalizeRole(rol) === 'CHEF';
 const TURNOS = ['Desayuno', 'Almuerzo', 'Cena'];
 
 const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);

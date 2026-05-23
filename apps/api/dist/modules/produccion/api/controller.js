@@ -2,7 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getKardex = exports.getProducciones = exports.registrarProduccion = void 0;
 const prisma_1 = require("../../../core/api/prisma");
-const canUseProduccion = (rol) => ['Gerente', 'Cocinero', 'Almacen', 'Almacén'].includes(rol || '');
+const auth_middleware_1 = require("../../../core/api/auth.middleware");
+const canUseProduccion = (rol) => (0, auth_middleware_1.normalizeRole)(rol) === 'CHEF';
 const TURNOS = ['Desayuno', 'Almuerzo', 'Cena'];
 const toIsoDate = (date) => date.toISOString().slice(0, 10);
 const roundQty = (value) => Number(value.toFixed(4));

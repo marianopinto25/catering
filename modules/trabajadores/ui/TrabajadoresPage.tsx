@@ -1,45 +1,44 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, ExternalLink, Save, UserPlus } from 'lucide-react';
+import { Copy, QrCode, Save, UserPlus, X } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { useAuth } from '@core/AuthContext';
-import QRCode from './QRCode';
-
-interface Cliente {
-  id: number;
-  razon_social: string;
-}
 
 interface Trabajador {
   id: number;
   ci: string;
   codigo_qr?: string | null;
-  nombres: string;
-  apellidos: string;
-  estado: string;
-  cliente_id: number;
-  cliente?: Cliente;
+  nombre?: string;
+  nombres?: string;
+  apellidos?: string;
+  cliente_empresa?: string;
+  activo?: boolean;
+  estado?: string;
+  cliente?: { razon_social: string };
+  usuarioId?: number | null;
 }
 
 const emptyForm = {
   id: 0,
   ci: '',
+  nombre: '',
+  cliente_empresa: '',
   codigo_qr: '',
-  nombres: '',
-  apellidos: '',
-  cliente_id: '',
-  estado: 'Activo'
+  activo: true,
+  crear_usuario: false,
+  email: '',
+  password: '123456'
 };
 
-const qrLinkFor = (codigoQr?: string | null) => {
-  if (!codigoQr) return '';
-  return `${window.location.origin}/comedor/consumo?qr=${encodeURIComponent(codigoQr)}`;
-};
+const trabajadorNombre = (trabajador: Trabajador) => (
+  trabajador.nombre || `${trabajador.nombres || ''} ${trabajador.apellidos || ''}`.trim() || '-'
+);
 
 const TrabajadoresPage: React.FC = () => {
-  const { token, user } = useAuth();
+  const { token, role } = useAuth();
   const [trabajadores, setTrabajadores] = useState<Trabajador[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [qrTrabajador, setQrTrabajador] = useState<Trabajador | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,27 +49,28 @@ const TrabajadoresPage: React.FC = () => {
   }), [token]);
 
   const loadData = async () => {
-    const [trabajadoresRes, clientesRes] = await Promise.all([
-      fetch('/api/trabajadores', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('/api/trabajadores/clientes', { headers: { Authorization: `Bearer ${token}` } })
-    ]);
-    if (trabajadoresRes.ok) setTrabajadores(await trabajadoresRes.json());
-    if (clientesRes.ok) setClientes(await clientesRes.json());
+    const res = await fetch('/api/trabajadores', { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar el padrón');
+    setTrabajadores(data);
   };
 
   useEffect(() => {
-    loadData().catch(() => setError('No se pudo cargar el padrón'));
+    if (!token) return;
+    loadData().catch((err: any) => setError(err.message));
   }, [token]);
 
   const edit = (trabajador: Trabajador) => {
     setForm({
       id: trabajador.id,
       ci: trabajador.ci,
+      nombre: trabajadorNombre(trabajador),
+      cliente_empresa: trabajador.cliente_empresa || trabajador.cliente?.razon_social || '',
       codigo_qr: trabajador.codigo_qr || '',
-      nombres: trabajador.nombres,
-      apellidos: trabajador.apellidos,
-      cliente_id: String(trabajador.cliente_id),
-      estado: trabajador.estado
+      activo: trabajador.activo ?? trabajador.estado !== 'Inactivo',
+      crear_usuario: false,
+      email: '',
+      password: '123456'
     });
     setMessage('');
     setError('');
@@ -89,11 +89,14 @@ const TrabajadoresPage: React.FC = () => {
         headers: authHeaders,
         body: JSON.stringify({
           ci: form.ci,
-          codigo_qr: form.codigo_qr,
-          nombres: form.nombres,
-          apellidos: form.apellidos,
-          cliente_id: Number(form.cliente_id),
-          estado: form.estado
+          nombre: form.nombre,
+          cliente_empresa: form.cliente_empresa,
+          codigo_qr: form.codigo_qr || undefined,
+          activo: form.activo,
+          estado: form.activo ? 'Activo' : 'Inactivo',
+          crear_usuario: form.crear_usuario,
+          email: form.email || undefined,
+          password: form.password || undefined
         })
       });
       const data = await res.json();
@@ -108,18 +111,18 @@ const TrabajadoresPage: React.FC = () => {
     }
   };
 
-  if (user?.rol !== 'Gerente') {
+  if (role !== 'GERENTE') {
     return <div className="card"><p className="error-text">Acceso denegado. Se requiere rol de Gerente.</p></div>;
   }
 
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: '1.5rem' }}>
       <div>
-        <h2>Trabajadores autorizados</h2>
-        <p style={{ color: 'var(--text-muted)' }}>Padrón de comensales. Cada trabajador obtiene un QR que abre su registro de consumo del día.</p>
+        <h2>Trabajadores</h2>
+        <p style={{ color: 'var(--text-muted)' }}>Padrón de trabajadores de la empresa cliente y QR único para registrar consumo.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 0.8fr) minmax(420px, 1.2fr)', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 0.8fr) minmax(520px, 1.2fr)', gap: '1.5rem', alignItems: 'start' }}>
         <section className="card">
           <h3 style={{ marginBottom: '1rem' }}>{form.id ? 'Editar trabajador' : 'Registrar trabajador'}</h3>
           <form onSubmit={submit} style={{ display: 'grid', gap: '0.9rem' }}>
@@ -128,36 +131,44 @@ const TrabajadoresPage: React.FC = () => {
               <input className="input-field" value={form.ci} onChange={e => setForm({ ...form, ci: e.target.value })} required />
             </div>
             <div className="form-group">
+              <label className="form-label">Nombre</label>
+              <input className="input-field" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Empresa cliente</label>
+              <input className="input-field" value={form.cliente_empresa} onChange={e => setForm({ ...form, cliente_empresa: e.target.value })} required />
+            </div>
+            <div className="form-group">
               <label className="form-label">Código QR</label>
-              <input className="input-field" value={form.codigo_qr} onChange={e => setForm({ ...form, codigo_qr: e.target.value })} placeholder="Se genera automáticamente con el CI" />
+              <input className="input-field" value={form.codigo_qr} onChange={e => setForm({ ...form, codigo_qr: e.target.value })} placeholder="Se genera automáticamente si se deja vacío" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div className="form-group">
-                <label className="form-label">Nombres</label>
-                <input className="input-field" value={form.nombres} onChange={e => setForm({ ...form, nombres: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Apellidos</label>
-                <input className="input-field" value={form.apellidos} onChange={e => setForm({ ...form, apellidos: e.target.value })} required />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Cliente</label>
-              <select className="input-field" value={form.cliente_id} onChange={e => setForm({ ...form, cliente_id: e.target.value })} required>
-                <option value="">Seleccione...</option>
-                {clientes.map(cliente => <option key={cliente.id} value={cliente.id}>{cliente.razon_social}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Estado</label>
-              <select className="input-field" value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-              </select>
-            </div>
-            {message && <p style={{ color: 'var(--success-color)', fontWeight: 700 }}>{message}</p>}
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem', fontWeight: 800 }}>
+              <input type="checkbox" checked={form.activo} onChange={e => setForm({ ...form, activo: e.target.checked })} />
+              Activo
+            </label>
+            {!form.id && (
+              <>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem', fontWeight: 800 }}>
+                  <input type="checkbox" checked={form.crear_usuario} onChange={e => setForm({ ...form, crear_usuario: e.target.checked })} />
+                  Crear cuenta TRABAJADOR
+                </label>
+                {form.crear_usuario && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Email</label>
+                      <input className="input-field" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required={form.crear_usuario} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Password</label>
+                      <input className="input-field" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required={form.crear_usuario} />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {message && <p style={{ color: 'var(--success-color)', fontWeight: 800 }}>{message}</p>}
             {error && <p className="error-text">{error}</p>}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button className="btn-primary" type="submit" disabled={loading}>
                 <Save size={16} /> {loading ? 'Guardando...' : 'Guardar'}
               </button>
@@ -169,7 +180,7 @@ const TrabajadoresPage: React.FC = () => {
         <section className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3>Listado</h3>
-            <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>{trabajadores.length} registros</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 800 }}>{trabajadores.length} registros</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -177,8 +188,7 @@ const TrabajadoresPage: React.FC = () => {
                 <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>CI</th>
                   <th style={{ padding: '0.75rem' }}>Trabajador</th>
-                  <th style={{ padding: '0.75rem' }}>QR de consumo</th>
-                  <th style={{ padding: '0.75rem' }}>Cliente</th>
+                  <th style={{ padding: '0.75rem' }}>Empresa</th>
                   <th style={{ padding: '0.75rem' }}>Estado</th>
                   <th style={{ padding: '0.75rem' }}></th>
                 </tr>
@@ -186,30 +196,19 @@ const TrabajadoresPage: React.FC = () => {
               <tbody>
                 {trabajadores.map(trabajador => (
                   <tr key={trabajador.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 700 }}>{trabajador.ci}</td>
-                    <td style={{ padding: '0.75rem' }}>{trabajador.nombres} {trabajador.apellidos}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      {trabajador.codigo_qr ? (
-                        <div style={{ display: 'grid', gap: '0.55rem', width: '170px' }}>
-                          <QRCode value={qrLinkFor(trabajador.codigo_qr)} size={132} />
-                          <code style={{ fontSize: '0.72rem', color: 'var(--text-muted)', wordBreak: 'break-word' }}>{trabajador.codigo_qr}</code>
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            <button type="button" className="btn-secondary" onClick={() => navigator.clipboard?.writeText(qrLinkFor(trabajador.codigo_qr))}>
-                              <Copy size={14} /> Copiar
-                            </button>
-                            <a className="btn-secondary" href={qrLinkFor(trabajador.codigo_qr)} target="_blank" rel="noreferrer">
-                              <ExternalLink size={14} /> Abrir
-                            </a>
-                          </div>
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>{trabajador.cliente?.razon_social || '-'}</td>
-                    <td style={{ padding: '0.75rem' }}>{trabajador.estado}</td>
+                    <td style={{ padding: '0.75rem', fontWeight: 800 }}>{trabajador.ci}</td>
+                    <td style={{ padding: '0.75rem' }}>{trabajadorNombre(trabajador)}</td>
+                    <td style={{ padding: '0.75rem' }}>{trabajador.cliente_empresa || trabajador.cliente?.razon_social || '-'}</td>
+                    <td style={{ padding: '0.75rem' }}>{trabajador.activo ?? trabajador.estado !== 'Inactivo' ? 'Activo' : 'Inactivo'}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button type="button" className="btn-secondary" onClick={() => edit(trabajador)}>
-                        <UserPlus size={15} /> Editar
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn-secondary" onClick={() => setQrTrabajador(trabajador)} disabled={!trabajador.codigo_qr}>
+                          <QrCode size={15} /> Ver QR
+                        </button>
+                        <button type="button" className="btn-secondary" onClick={() => edit(trabajador)}>
+                          <UserPlus size={15} /> Editar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -218,6 +217,31 @@ const TrabajadoresPage: React.FC = () => {
           </div>
         </section>
       </div>
+
+      {qrTrabajador && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'grid', placeItems: 'center', zIndex: 300 }}>
+          <div className="card" style={{ width: 'min(420px, calc(100vw - 2rem))', display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+              <div>
+                <h3>QR de {trabajadorNombre(qrTrabajador)}</h3>
+                <p style={{ color: 'var(--text-muted)' }}>Valor único del trabajador</p>
+              </div>
+              <button className="btn-secondary" type="button" onClick={() => setQrTrabajador(null)} aria-label="Cerrar">
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ display: 'grid', placeItems: 'center', padding: '1rem', background: '#fff', borderRadius: '8px' }}>
+              <QRCode value={qrTrabajador.codigo_qr || ''} size={220} />
+            </div>
+            <code style={{ display: 'block', padding: '0.85rem', borderRadius: '8px', background: 'var(--soft-bg)', wordBreak: 'break-all' }}>
+              {qrTrabajador.codigo_qr}
+            </code>
+            <button className="btn-primary" type="button" onClick={() => navigator.clipboard?.writeText(qrTrabajador.codigo_qr || '')}>
+              <Copy size={16} /> Copiar código
+            </button>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

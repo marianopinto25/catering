@@ -17,10 +17,16 @@ import AlertasPage from '../../modules/alertas/ui/AlertasPage';
 import MenuMensualPage from '../../modules/menu/ui/MenuMensualPage';
 import RecetasPage from '../../modules/menu/ui/RecetasPage';
 import ConsumoPage from '../../modules/consumos/ui/ConsumoPage';
+import MiConsumoPage from '../../modules/consumos/ui/MiConsumoPage';
+import ConsumosDiaPage from '../../modules/consumos/ui/ConsumosDiaPage';
 import TrabajadoresPage from '../../modules/trabajadores/ui/TrabajadoresPage';
 import ReporteDiarioPage from '../../modules/reportes/ui/ReporteDiarioPage';
 import ProduccionPage from '../../modules/produccion/ui/ProduccionPage';
 import Dashboard from '../../apps/web/src/Dashboard';
+
+export type AppRouteObject = RouteObject & {
+  roles?: string[];
+};
 
 // Rutas públicas (sin layout)
 export const publicRoutes: RouteObject[] = [
@@ -28,33 +34,36 @@ export const publicRoutes: RouteObject[] = [
 ];
 
 // Rutas protegidas (con Sidebar + ProtectedRoute en App.tsx)
-export const protectedRoutes: RouteObject[] = [
-  { path: '/dashboard',            element: <Dashboard /> },
+export const protectedRoutes: AppRouteObject[] = [
+  { path: '/dashboard',            element: <Dashboard />, roles: ['GERENTE'] },
   // --- módulo/proveedores ---
-  { path: '/proveedores',           element: <ProveedoresList /> },
-  { path: '/proveedores/nuevo',     element: <ProveedorForm /> },
-  { path: '/proveedores/:id/editar',element: <ProveedorForm /> },
+  { path: '/proveedores',           element: <ProveedoresList />, roles: ['GERENTE'] },
+  { path: '/proveedores/nuevo',     element: <ProveedorForm />, roles: ['GERENTE'] },
+  { path: '/proveedores/:id/editar',element: <ProveedorForm />, roles: ['GERENTE'] },
   // --- módulo/insumos ---
-  { path: '/insumos',               element: <InsumosList /> },
-  { path: '/insumos/nuevo',         element: <InsumoForm /> },
-  { path: '/insumos/:id/editar',    element: <InsumoForm /> },
+  { path: '/insumos',               element: <InsumosList />, roles: ['GERENTE', 'CHEF'] },
+  { path: '/insumos/nuevo',         element: <InsumoForm />, roles: ['GERENTE', 'CHEF'] },
+  { path: '/insumos/:id/editar',    element: <InsumoForm />, roles: ['GERENTE', 'CHEF'] },
   // --- módulo/compras ---
-  { path: '/compras',               element: <ComprasPage /> },
-  { path: '/compras/nueva',         element: <NuevaCompraForm /> },
+  { path: '/compras',               element: <ComprasPage />, roles: ['GERENTE'] },
+  { path: '/compras/nueva',         element: <NuevaCompraForm />, roles: ['GERENTE'] },
   // --- módulo/inventario ---
-  { path: '/inventario',            element: <InventarioPage /> },
-  { path: '/inventario/ingreso',    element: <IngresoInventarioForm /> },
+  { path: '/inventario',            element: <InventarioPage />, roles: ['GERENTE', 'CHEF'] },
+  { path: '/inventario/ingreso',    element: <IngresoInventarioForm />, roles: ['GERENTE', 'CHEF'] },
   // --- módulo/alertas ---
-  { path: '/alertas',               element: <AlertasPage /> },
+  { path: '/alertas',               element: <AlertasPage />, roles: ['GERENTE', 'CHEF'] },
   // --- módulo/menú ---
-  { path: '/menu',                   element: <MenuMensualPage /> },
-  { path: '/menu/platos',            element: <MenuMensualPage /> },
-  { path: '/menu/recetas',           element: <RecetasPage /> },
+  { path: '/menu',                   element: <MenuMensualPage />, roles: ['GERENTE', 'CHEF'] },
+  { path: '/menu/platos',            element: <MenuMensualPage />, roles: ['GERENTE', 'CHEF'] },
+  { path: '/menu/recetas',           element: <RecetasPage />, roles: ['GERENTE', 'CHEF'] },
   // --- módulo/comedor ---
-  { path: '/comedor/consumo',         element: <ConsumoPage /> },
-  { path: '/comedor/trabajadores',    element: <TrabajadoresPage /> },
+  { path: '/comedor/consumo',         element: <ConsumoPage />, roles: ['GERENTE'] },
+  { path: '/comedor/trabajadores',    element: <TrabajadoresPage />, roles: ['GERENTE'] },
+  { path: '/trabajadores',            element: <TrabajadoresPage />, roles: ['GERENTE'] },
+  { path: '/mi-consumo',              element: <MiConsumoPage />, roles: ['TRABAJADOR'] },
+  { path: '/consumos',                element: <ConsumosDiaPage />, roles: ['GERENTE'] },
   // --- módulo/reportes ---
-  { path: '/reportes/diario',          element: <ReporteDiarioPage /> },
+  { path: '/reportes/diario',          element: <ReporteDiarioPage />, roles: ['GERENTE'] },
   // --- módulo/producción ---
-  { path: '/produccion',               element: <ProduccionPage /> },
+  { path: '/produccion',               element: <ProduccionPage />, roles: ['CHEF'] },
 ];

@@ -8,7 +8,6 @@ import {
   ShoppingBag,
   Package,
   AlertCircle,
-  BookOpenText,
   Shapes,
   Utensils,
   Menu,
@@ -25,6 +24,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
   const { user, logout } = useAuth();
+  const role = user?.rol?.toUpperCase();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -32,20 +32,32 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     navigate('/login');
   };
 
-  const navItems = [
-    { to: '/dashboard', icon: <ClipboardList size={20} />, label: 'Manejo Inv. y Compras' },
-    { to: '/proveedores', icon: <Truck size={20} />, label: 'Proveedores' },
-    { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
-    { to: '/compras', icon: <ShoppingBag size={20} />, label: 'Compras' },
-    { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
-    { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
-    { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
-    { to: '/menu/recetas', icon: <BookOpenText size={20} />, label: 'Recetas' },
-    { to: '/produccion', icon: <ChefHat size={20} />, label: 'Producción' },
-    { to: '/comedor/consumo', icon: <BadgeCheck size={20} />, label: 'Consumo' },
-    ...(user?.rol === 'Gerente' ? [{ to: '/comedor/trabajadores', icon: <Users size={20} />, label: 'Trabajadores' }] : []),
-    { to: '/reportes/diario', icon: <FileCheck2 size={20} />, label: 'Reporte diario' },
-  ];
+  const navItemsByRole = {
+    GERENTE: [
+      { to: '/dashboard', icon: <ClipboardList size={20} />, label: 'Manejo Inv. y Compras' },
+      { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
+      { to: '/proveedores', icon: <Truck size={20} />, label: 'Proveedores' },
+      { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
+      { to: '/compras', icon: <ShoppingBag size={20} />, label: 'Compras' },
+      { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
+      { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
+      { to: '/consumos', icon: <FileCheck2 size={20} />, label: 'Consumos del día' },
+      { to: '/trabajadores', icon: <Users size={20} />, label: 'Trabajadores' },
+      { to: '/reportes/diario', icon: <FileCheck2 size={20} />, label: 'Reporte diario' },
+    ],
+    CHEF: [
+      { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
+      { to: '/produccion', icon: <ChefHat size={20} />, label: 'Producción' },
+      { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
+      { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
+      { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
+    ],
+    TRABAJADOR: [
+      { to: '/mi-consumo', icon: <BadgeCheck size={20} />, label: 'Mi Consumo' },
+    ],
+  };
+
+  const navItems = navItemsByRole[role as keyof typeof navItemsByRole] || [];
 
   return (
     <aside style={{

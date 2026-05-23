@@ -40,7 +40,7 @@ interface Reporte {
 const today = () => new Date().toISOString().slice(0, 10);
 
 const ReporteDiarioPage: React.FC = () => {
-  const { token, user } = useAuth();
+  const { token, role } = useAuth();
   const [fecha, setFecha] = useState(today());
   const [turno, setTurno] = useState('Almuerzo');
   const [reporte, setReporte] = useState<Reporte | null>(null);
@@ -83,8 +83,8 @@ const ReporteDiarioPage: React.FC = () => {
     await loadReporte();
   };
 
-  const canView = user?.rol === 'Cliente' || user?.rol === 'Gerente';
-  const canValidate = user?.rol === 'Cliente' && reporte?.estado !== 'Validado';
+  const canView = role === 'CLIENTE' || role === 'GERENTE';
+  const canValidate = role === 'CLIENTE' && reporte?.estado !== 'Validado';
 
   if (!canView) {
     return <div className="card"><p className="error-text">Acceso denegado al reporte diario.</p></div>;

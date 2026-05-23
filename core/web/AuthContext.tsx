@@ -9,6 +9,7 @@ interface User {
 interface AuthContextType {
   token: string | null;
   user: User | null;
+  role: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -37,8 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user_data');
   };
 
+  const role = user?.rol?.toUpperCase() || null;
+
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ token, user, role, login, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

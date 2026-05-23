@@ -118,7 +118,7 @@ const ProduccionPage: React.FC = () => {
     }
   };
 
-  const canUse = ['Gerente', 'Cocinero', 'Almacen', 'Almacén'].includes(user?.rol || '');
+  const canUse = user?.rol?.toUpperCase() === 'CHEF';
   if (!canUse) return <div className="card"><p className="error-text">Acceso denegado al módulo de producción.</p></div>;
 
   return (

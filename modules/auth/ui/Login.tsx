@@ -10,6 +10,13 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const homeForRole = (role?: string) => {
+    const normalized = role?.toUpperCase();
+    if (normalized === 'TRABAJADOR') return '/mi-consumo';
+    if (normalized === 'CHEF') return '/menu';
+    return '/dashboard';
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -27,7 +34,7 @@ const Login: React.FC = () => {
 
       const data = await response.json();
       login(data.token, data.user);
-      navigate('/dashboard');
+      navigate(homeForRole(data.user?.rol));
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
     }

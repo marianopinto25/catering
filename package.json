@@ -10,5 +10,8 @@
     "db:push": "npm run db:push --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
     "dev": "npm run dev:api & npm run dev:web"
+  },
+  "dependencies": {
+    "react-qr-code": "^2.0.21"
   }
 }
