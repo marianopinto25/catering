@@ -143,18 +143,20 @@ Endpoints principales bajo prefijo actual `/api/`.
 ## 4. Consumo (Comedor) - Sprint 3.1 Planning
 Todos los endpoints usan JWT. El input QR es manual por ahora; no se planifica cámara ni OCR en este sprint. Las firmas se capturan dentro del software con canvas y se guardan como base64.
 
-*   **POST `/trabajadores`** - Crear trabajador/comensal autorizado.
+*   **POST `/trabajadores`** - Crear trabajador/comensal autorizado y generar su código QR de consumo.
     *   *Roles:* `Gerente`.
-    *   *Req:* `{ "ci": "1234567", "codigo_qr": "QR-1234567", "nombres": "Juan", "apellidos": "Perez", "cliente_id": 1, "estado": "Activo" }`
-    *   *Validaciones:* `ci` único; `codigo_qr` único si se informa; `cliente_id` requerido; no borrar físico, usar estado.
+    *   *Req:* `{ "ci": "1234567", "nombres": "Juan", "apellidos": "Perez", "cliente_id": 1, "estado": "Activo" }`
+    *   `codigo_qr` es opcional; si no llega, el sistema genera uno estable con el CI (`CATERING-1234567`).
+    *   *Validaciones:* `ci` único; `codigo_qr` único; `cliente_id` requerido; no borrar físico, usar estado.
     *   *Res `201 Created`:* `{ id, ci, codigo_qr, nombres, apellidos, cliente_id, estado }`
     *   *Res `400 Bad Request`:* `{ "error": "Trabajador ya registrado" }`
-*   **GET `/trabajadores?ci=...&qr=...`** - Buscar trabajador por CI o código QR.
+*   **GET `/trabajadores?ci=...&qr=...`** - Buscar trabajador por CI o código QR generado.
     *   *Roles:* `Cliente`, `Gerente`.
     *   *Req query:* al menos uno de `ci` o `qr`.
     *   *Res `200 OK`:* `{ id, ci, codigo_qr, nombres, apellidos, cliente, estado }`
     *   *Res `404 Not Found`:* `{ "error": "Trabajador no registrado", "accion": "registrar_trabajador" }`
     *   Nota UI: la opción **Registrar trabajador** solo se habilita para `Gerente`.
+    *   El QR visual codifica un enlace profundo a `/comedor/consumo?qr=<codigo_qr>` para que al escanearlo se abra el registro de consumo del día.
 *   **POST `/consumos`** - Registrar consumo por fecha, turno y trabajador.
     *   *Roles:* `Cliente`, `Gerente`.
     *   *Req:* `{ "trabajador_id": 10, "fecha": "2026-05-23", "turno": "Almuerzo", "metodo_identificacion": "CI|QR" }`

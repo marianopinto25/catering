@@ -106,19 +106,19 @@
 *   `GET /comedor/consumo` -> Registro operativo de consumo con identificación y firma.
     *   Roles: `Cliente`, `Gerente`.
     *   Pantalla de uso rápido con selector de turno (`Desayuno`, `Almuerzo`, `Cena`), fecha operativa y control segmentado de método (`CI`, `QR`).
-    *   Input manual grande para CI o código QR. No se requiere cámara en Sprint 3.1.
+    *   Input manual grande para CI o código QR. También acepta enlaces escaneados con `?qr=<codigo_qr>` y busca automáticamente al trabajador.
     *   Al buscar trabajador:
         *   Si existe y está activo, mostrar nombre completo, CI, cliente y botón **Registrar consumo**.
         *   Si no existe, mostrar mensaje claro: **Trabajador no registrado**.
         *   Solo para `Gerente`, mostrar acción **Registrar trabajador**.
     *   Después de registrar consumo, mostrar canvas de firma del trabajador con acciones **Limpiar firma** y **Guardar firma**.
     *   Si el trabajador ya consumió en el mismo turno/día, bloquear el registro y mostrar alerta visible. Para Sprint 3.1 queda planificada la autorización de `Gerente`.
-*   `GET /comedor/trabajadores` -> Listado y mantenimiento del padrón de trabajadores.
+*   `GET /comedor/trabajadores` -> Listado y mantenimiento del padrón de trabajadores con QR generado.
     *   Roles: `Gerente`.
-    *   Tabla con CI, código QR, nombre completo, cliente, estado y acciones editar/desactivar.
+    *   Tabla con CI, código QR, QR visual escaneable, enlace profundo de consumo, cliente, estado y acciones editar/desactivar.
 *   `GET /comedor/trabajadores/nuevo` -> Formulario de alta de trabajador.
     *   Roles: `Gerente`.
-    *   Campos: CI, código QR opcional, nombres, apellidos, cliente, estado.
+    *   Campos: CI, código QR opcional, nombres, apellidos, cliente, estado. Si no se escribe código QR, el backend lo genera.
     *   Debe poder abrirse desde el flujo de consumo cuando la búsqueda no encuentra trabajador.
 
 ### Wireframe textual Sprint 3.1 - Registro de consumo

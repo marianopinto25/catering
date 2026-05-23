@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getClientes = exports.updateTrabajador = exports.createTrabajador = exports.getTrabajadores = void 0;
 const prisma_1 = require("../../../core/api/prisma");
 const canReadTrabajadores = (rol) => rol === 'Gerente' || rol === 'Cliente';
+const buildQrCode = (ci) => `CATERING-${ci.replace(/\W+/g, '').toUpperCase()}`;
 const getTrabajadores = async (req, res) => {
     if (!canReadTrabajadores(req.user?.rol))
         return res.status(403).json({ error: 'Acceso denegado' });
@@ -41,7 +42,7 @@ const createTrabajador = async (req, res) => {
         return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
     const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
     const cleanCi = String(ci || '').trim();
-    const cleanQr = String(codigo_qr || '').trim();
+    const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
     try {
         if (!cleanCi || !nombres || !apellidos || !cliente_id) {
             return res.status(400).json({ error: 'CI, nombres, apellidos y cliente son obligatorios' });
@@ -50,7 +51,7 @@ const createTrabajador = async (req, res) => {
             where: {
                 OR: [
                     { ci: cleanCi },
-                    ...(cleanQr ? [{ codigo_qr: cleanQr }] : [])
+                    { codigo_qr: cleanQr }
                 ]
             }
         });
@@ -59,7 +60,7 @@ const createTrabajador = async (req, res) => {
         const trabajador = await prisma_1.prisma.trabajador.create({
             data: {
                 ci: cleanCi,
-                codigo_qr: cleanQr || null,
+                codigo_qr: cleanQr,
                 nombres: String(nombres).trim(),
                 apellidos: String(apellidos).trim(),
                 cliente_id: Number(cliente_id),
@@ -80,7 +81,7 @@ const updateTrabajador = async (req, res) => {
     const id = Number(req.params.id);
     const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
     const cleanCi = String(ci || '').trim();
-    const cleanQr = String(codigo_qr || '').trim();
+    const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
     try {
         if (!Number.isInteger(id) || id <= 0)
             return res.status(400).json({ error: 'ID inválido' });
@@ -92,7 +93,7 @@ const updateTrabajador = async (req, res) => {
                 id: { not: id },
                 OR: [
                     { ci: cleanCi },
-                    ...(cleanQr ? [{ codigo_qr: cleanQr }] : [])
+                    { codigo_qr: cleanQr }
                 ]
             }
         });
@@ -102,7 +103,7 @@ const updateTrabajador = async (req, res) => {
             where: { id },
             data: {
                 ci: cleanCi,
-                codigo_qr: cleanQr || null,
+                codigo_qr: cleanQr,
                 nombres: String(nombres).trim(),
                 apellidos: String(apellidos).trim(),
                 cliente_id: Number(cliente_id),

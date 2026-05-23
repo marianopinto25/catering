@@ -4,6 +4,8 @@ import { AuthRequest } from '../../../core/api/auth.middleware';
 
 const canReadTrabajadores = (rol?: string) => rol === 'Gerente' || rol === 'Cliente';
 
+const buildQrCode = (ci: string) => `CATERING-${ci.replace(/\W+/g, '').toUpperCase()}`;
+
 export const getTrabajadores = async (req: AuthRequest, res: Response) => {
   if (!canReadTrabajadores(req.user?.rol)) return res.status(403).json({ error: 'Acceso denegado' });
 
@@ -45,7 +47,7 @@ export const createTrabajador = async (req: AuthRequest, res: Response) => {
 
   const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
   const cleanCi = String(ci || '').trim();
-  const cleanQr = String(codigo_qr || '').trim();
+  const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
 
   try {
     if (!cleanCi || !nombres || !apellidos || !cliente_id) {
@@ -56,7 +58,7 @@ export const createTrabajador = async (req: AuthRequest, res: Response) => {
       where: {
         OR: [
           { ci: cleanCi },
-          ...(cleanQr ? [{ codigo_qr: cleanQr }] : [])
+          { codigo_qr: cleanQr }
         ]
       }
     });
@@ -65,7 +67,7 @@ export const createTrabajador = async (req: AuthRequest, res: Response) => {
     const trabajador = await prisma.trabajador.create({
       data: {
         ci: cleanCi,
-        codigo_qr: cleanQr || null,
+        codigo_qr: cleanQr,
         nombres: String(nombres).trim(),
         apellidos: String(apellidos).trim(),
         cliente_id: Number(cliente_id),
@@ -86,7 +88,7 @@ export const updateTrabajador = async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
   const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
   const cleanCi = String(ci || '').trim();
-  const cleanQr = String(codigo_qr || '').trim();
+  const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
 
   try {
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido' });
@@ -99,7 +101,7 @@ export const updateTrabajador = async (req: AuthRequest, res: Response) => {
         id: { not: id },
         OR: [
           { ci: cleanCi },
-          ...(cleanQr ? [{ codigo_qr: cleanQr }] : [])
+          { codigo_qr: cleanQr }
         ]
       }
     });
@@ -109,7 +111,7 @@ export const updateTrabajador = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: {
         ci: cleanCi,
-        codigo_qr: cleanQr || null,
+        codigo_qr: cleanQr,
         nombres: String(nombres).trim(),
         apellidos: String(apellidos).trim(),
         cliente_id: Number(cliente_id),

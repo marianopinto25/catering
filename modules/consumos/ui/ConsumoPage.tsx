@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Search, UserPlus } from 'lucide-react';
 import { useAuth } from '@core/AuthContext';
@@ -25,6 +25,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 const ConsumoPage: React.FC = () => {
   const { token, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [fecha, setFecha] = useState(today());
   const [turno, setTurno] = useState('Almuerzo');
   const [metodo, setMetodo] = useState<'CI' | 'QR'>('CI');
@@ -40,14 +41,16 @@ const ConsumoPage: React.FC = () => {
     Authorization: `Bearer ${token}`
   }), [token]);
 
-  const buscar = async () => {
+  const buscar = async (override?: { metodo?: 'CI' | 'QR'; query?: string }) => {
+    const currentMetodo = override?.metodo || metodo;
+    const currentQuery = override?.query ?? query;
     setLoading(true);
     setError('');
     setStatus('');
     setTrabajador(null);
     setConsumo(null);
     try {
-      const param = metodo === 'CI' ? `ci=${encodeURIComponent(query.trim())}` : `qr=${encodeURIComponent(query.trim())}`;
+      const param = currentMetodo === 'CI' ? `ci=${encodeURIComponent(currentQuery.trim())}` : `qr=${encodeURIComponent(currentQuery.trim())}`;
       const res = await fetch(`/api/trabajadores?${param}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Trabajador no encontrado');
@@ -59,6 +62,14 @@ const ConsumoPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const qr = searchParams.get('qr');
+    if (!qr || !token) return;
+    setMetodo('QR');
+    setQuery(qr);
+    buscar({ metodo: 'QR', query: qr });
+  }, [searchParams, token]);
 
   const registrarConsumo = async () => {
     if (!trabajador) return;
@@ -110,7 +121,7 @@ const ConsumoPage: React.FC = () => {
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: '1.5rem' }}>
       <div>
         <h2>Consumo de comensales</h2>
-        <p style={{ color: 'var(--text-muted)' }}>Identificación manual por CI o código QR y firma digital del trabajador.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Abra el QR del trabajador o identifique por CI para registrar la comida consumida hoy.</p>
       </div>
 
       <section className="card" style={{ display: 'grid', gap: '1rem' }}>
@@ -160,16 +171,16 @@ const ConsumoPage: React.FC = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
           <div className="form-group">
-            <label className="form-label">{metodo === 'CI' ? 'CI' : 'Código QR'}</label>
+            <label className="form-label">{metodo === 'CI' ? 'CI' : 'Código QR o enlace escaneado'}</label>
             <input
               className="input-field"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={metodo === 'CI' ? 'Ej: 1234567' : 'Ej: QR-1234567'}
+              placeholder={metodo === 'CI' ? 'Ej: 1234567' : 'Escanee o pegue el QR del trabajador'}
               onKeyDown={e => e.key === 'Enter' && buscar()}
             />
           </div>
-          <button className="btn-primary" type="button" onClick={buscar} disabled={loading || !query.trim()}>
+          <button className="btn-primary" type="button" onClick={() => buscar()} disabled={loading || !query.trim()}>
             <Search size={16} /> {loading ? 'Buscando...' : 'Buscar'}
           </button>
         </div>

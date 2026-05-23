@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Save, UserPlus } from 'lucide-react';
+import { Copy, ExternalLink, Save, UserPlus } from 'lucide-react';
 import { useAuth } from '@core/AuthContext';
+import QRCode from './QRCode';
 
 interface Cliente {
   id: number;
@@ -27,6 +28,11 @@ const emptyForm = {
   apellidos: '',
   cliente_id: '',
   estado: 'Activo'
+};
+
+const qrLinkFor = (codigoQr?: string | null) => {
+  if (!codigoQr) return '';
+  return `${window.location.origin}/comedor/consumo?qr=${encodeURIComponent(codigoQr)}`;
 };
 
 const TrabajadoresPage: React.FC = () => {
@@ -110,7 +116,7 @@ const TrabajadoresPage: React.FC = () => {
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: '1.5rem' }}>
       <div>
         <h2>Trabajadores autorizados</h2>
-        <p style={{ color: 'var(--text-muted)' }}>Padrón de comensales para identificación por CI o código QR.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Padrón de comensales. Cada trabajador obtiene un QR que abre su registro de consumo del día.</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 0.8fr) minmax(420px, 1.2fr)', gap: '1.5rem', alignItems: 'start' }}>
@@ -123,7 +129,7 @@ const TrabajadoresPage: React.FC = () => {
             </div>
             <div className="form-group">
               <label className="form-label">Código QR</label>
-              <input className="input-field" value={form.codigo_qr} onChange={e => setForm({ ...form, codigo_qr: e.target.value })} placeholder="Ej: QR-1234567" />
+              <input className="input-field" value={form.codigo_qr} onChange={e => setForm({ ...form, codigo_qr: e.target.value })} placeholder="Se genera automáticamente con el CI" />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
@@ -171,7 +177,7 @@ const TrabajadoresPage: React.FC = () => {
                 <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>CI</th>
                   <th style={{ padding: '0.75rem' }}>Trabajador</th>
-                  <th style={{ padding: '0.75rem' }}>QR</th>
+                  <th style={{ padding: '0.75rem' }}>QR de consumo</th>
                   <th style={{ padding: '0.75rem' }}>Cliente</th>
                   <th style={{ padding: '0.75rem' }}>Estado</th>
                   <th style={{ padding: '0.75rem' }}></th>
@@ -182,7 +188,22 @@ const TrabajadoresPage: React.FC = () => {
                   <tr key={trabajador.id} style={{ borderTop: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '0.75rem', fontWeight: 700 }}>{trabajador.ci}</td>
                     <td style={{ padding: '0.75rem' }}>{trabajador.nombres} {trabajador.apellidos}</td>
-                    <td style={{ padding: '0.75rem' }}>{trabajador.codigo_qr || '-'}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {trabajador.codigo_qr ? (
+                        <div style={{ display: 'grid', gap: '0.55rem', width: '170px' }}>
+                          <QRCode value={qrLinkFor(trabajador.codigo_qr)} size={132} />
+                          <code style={{ fontSize: '0.72rem', color: 'var(--text-muted)', wordBreak: 'break-word' }}>{trabajador.codigo_qr}</code>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            <button type="button" className="btn-secondary" onClick={() => navigator.clipboard?.writeText(qrLinkFor(trabajador.codigo_qr))}>
+                              <Copy size={14} /> Copiar
+                            </button>
+                            <a className="btn-secondary" href={qrLinkFor(trabajador.codigo_qr)} target="_blank" rel="noreferrer">
+                              <ExternalLink size={14} /> Abrir
+                            </a>
+                          </div>
+                        </div>
+                      ) : '-'}
+                    </td>
                     <td style={{ padding: '0.75rem' }}>{trabajador.cliente?.razon_social || '-'}</td>
                     <td style={{ padding: '0.75rem' }}>{trabajador.estado}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
