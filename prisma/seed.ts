@@ -1,38 +1,50 @@
 import { PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
 async function main() {
   const gerente = await prisma.usuario.upsert({
     where: { email: 'gerente@catering.com' },
-    update: {},
+    update: { rol: 'GERENTE', nombre: 'Gerente General' },
     create: {
       email: 'gerente@catering.com',
       password_hash: '123456', // Mock password simple
       nombre: 'Gerente General',
-      rol: 'Gerente',
+      rol: 'GERENTE',
+    },
+  });
+
+  const chef = await prisma.usuario.upsert({
+    where: { email: 'chef@catering.com' },
+    update: { rol: 'CHEF', nombre: 'Chef Principal' },
+    create: {
+      email: 'chef@catering.com',
+      password_hash: '123456',
+      nombre: 'Chef Principal',
+      rol: 'CHEF',
     },
   });
 
   const clienteUser = await prisma.usuario.upsert({
     where: { email: 'cliente@catering.com' },
-    update: {},
+    update: { rol: 'CLIENTE', nombre: 'Cliente Obra' },
     create: {
       email: 'cliente@catering.com',
       password_hash: '123456',
       nombre: 'Cliente Obra',
-      rol: 'Cliente',
+      rol: 'CLIENTE',
     },
   });
 
   const almacen = await prisma.usuario.upsert({
     where: { email: 'almacen@catering.com' },
-    update: {},
+    update: { rol: 'ALMACEN', nombre: 'Responsable Almacén' },
     create: {
       email: 'almacen@catering.com',
       password_hash: '123456',
       nombre: 'Responsable Almacén',
-      rol: 'Almacen',
+      rol: 'ALMACEN',
     },
   });
 
@@ -45,22 +57,55 @@ async function main() {
     },
   });
 
+  const trabajadorUser1 = await prisma.usuario.upsert({
+    where: { email: 'trabajador1@cliente.com' },
+    update: { rol: 'TRABAJADOR', nombre: 'Juan Perez' },
+    create: {
+      email: 'trabajador1@cliente.com',
+      password_hash: '123456',
+      nombre: 'Juan Perez',
+      rol: 'TRABAJADOR',
+    },
+  });
+
+  const trabajadorUser2 = await prisma.usuario.upsert({
+    where: { email: 'trabajador2@cliente.com' },
+    update: { rol: 'TRABAJADOR', nombre: 'Maria Rojas' },
+    create: {
+      email: 'trabajador2@cliente.com',
+      password_hash: '123456',
+      nombre: 'Maria Rojas',
+      rol: 'TRABAJADOR',
+    },
+  });
+
+  const qr1 = `TRB-1-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  const qr2 = `TRB-2-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
   await prisma.trabajador.upsert({
     where: { ci: '1234567' },
     update: {
       cliente_id: cliente.id,
-      codigo_qr: 'QR-1234567',
+      codigo_qr: 'TRB-1-DEMO',
       nombres: 'Juan',
       apellidos: 'Perez',
+      nombre: 'Juan Perez',
+      cliente_empresa: cliente.razon_social,
+      activo: true,
       estado: 'Activo',
+      usuarioId: trabajadorUser1.id,
     },
     create: {
       cliente_id: cliente.id,
       ci: '1234567',
-      codigo_qr: 'QR-1234567',
+      codigo_qr: qr1,
       nombres: 'Juan',
       apellidos: 'Perez',
+      nombre: 'Juan Perez',
+      cliente_empresa: cliente.razon_social,
+      activo: true,
       estado: 'Activo',
+      usuarioId: trabajadorUser1.id,
     },
   });
 
@@ -68,18 +113,26 @@ async function main() {
     where: { ci: '7654321' },
     update: {
       cliente_id: cliente.id,
-      codigo_qr: 'QR-7654321',
+      codigo_qr: 'TRB-2-DEMO',
       nombres: 'Maria',
       apellidos: 'Rojas',
+      nombre: 'Maria Rojas',
+      cliente_empresa: cliente.razon_social,
+      activo: true,
       estado: 'Activo',
+      usuarioId: trabajadorUser2.id,
     },
     create: {
       cliente_id: cliente.id,
       ci: '7654321',
-      codigo_qr: 'QR-7654321',
+      codigo_qr: qr2,
       nombres: 'Maria',
       apellidos: 'Rojas',
+      nombre: 'Maria Rojas',
+      cliente_empresa: cliente.razon_social,
+      activo: true,
       estado: 'Activo',
+      usuarioId: trabajadorUser2.id,
     },
   });
 
@@ -284,7 +337,7 @@ async function main() {
     },
   });
 
-  console.log('Seed ejecutado correctamente:', { gerente, clienteUser, almacen, cliente, proveedor, plato, desayuno, cena, menu });
+  console.log('Seed ejecutado correctamente:', { gerente, chef, clienteUser, almacen, trabajadorUser1, trabajadorUser2, cliente, proveedor, plato, desayuno, cena, menu });
 }
 
 main()

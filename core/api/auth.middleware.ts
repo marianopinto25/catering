@@ -7,6 +7,8 @@ export interface AuthRequest extends Request {
   user?: { id: number; email: string; rol: string; nombre: string };
 }
 
+export const normalizeRole = (role?: string) => String(role || '').trim().toUpperCase();
+
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -24,8 +26,24 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 export const requireGerente = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (!req.user || req.user.rol !== 'Gerente') {
+  if (!req.user || normalizeRole(req.user.rol) !== 'GERENTE') {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
+  }
+  next();
+};
+
+export const requireRoles = (roles: string[]) => (req: AuthRequest, res: Response, next: NextFunction) => {
+  const allowed = new Set(roles.map(normalizeRole));
+  if (!req.user || !allowed.has(normalizeRole(req.user.rol))) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+  next();
+};
+
+export const forbidRoles = (roles: string[]) => (req: AuthRequest, res: Response, next: NextFunction) => {
+  const blocked = new Set(roles.map(normalizeRole));
+  if (req.user && blocked.has(normalizeRole(req.user.rol))) {
+    return res.status(403).json({ error: 'Acceso denegado para este rol' });
   }
   next();
 };

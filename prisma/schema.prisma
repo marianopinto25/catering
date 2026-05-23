@@ -22,6 +22,7 @@ model Usuario {
   consumos_autorizados Consumo[] @relation("ConsumoAutorizadoPor")
   reportes_validados   ReporteValidacion[] @relation("ReporteValidadoPor")
   producciones         Produccion[]
+  trabajador           Trabajador?
 }
 
 model Proveedor {
@@ -223,7 +224,12 @@ model Trabajador {
   codigo_qr  String? @unique
   nombres    String
   apellidos  String
+  nombre      String  @default("")
+  cliente_empresa String @default("")
+  activo      Boolean @default(true)
   estado     String  @default("Activo")
+  usuarioId  Int?    @unique
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
   consumos   Consumo[]
 }
 
@@ -232,11 +238,14 @@ model Consumo {
   trabajador_id          Int
   trabajador             Trabajador @relation(fields: [trabajador_id], references: [id])
   fecha                  DateTime
+  fechaTexto             String   @default("")
   turno                  String
   metodo_identificacion  String
+  metodo                 String   @default("SESION")
   registrado_por_id      Int
   registrado_por         Usuario   @relation("ConsumoRegistradoPor", fields: [registrado_por_id], references: [id])
   registrado_en          DateTime  @default(now())
+  firmaBase64            String?
   doble_racion           Boolean   @default(false)
   autorizado_por_id      Int?
   autorizado_por         Usuario?  @relation("ConsumoAutorizadoPor", fields: [autorizado_por_id], references: [id])
@@ -244,7 +253,9 @@ model Consumo {
   feedback               Feedback?
 
   @@unique([trabajador_id, fecha, turno])
+  @@unique([trabajador_id, fechaTexto, turno])
   @@index([fecha, turno])
+  @@index([fechaTexto, turno])
 }
 
 model ConsumoFirma {
