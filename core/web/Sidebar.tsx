@@ -13,7 +13,8 @@ import {
   Utensils,
   Menu,
   BadgeCheck,
-  Users
+  Users,
+  FileCheck2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     { to: '/menu/recetas', icon: <BookOpenText size={20} />, label: 'Recetas' },
     { to: '/comedor/consumo', icon: <BadgeCheck size={20} />, label: 'Consumo' },
     ...(user?.rol === 'Gerente' ? [{ to: '/comedor/trabajadores', icon: <Users size={20} />, label: 'Trabajadores' }] : []),
+    { to: '/reportes/diario', icon: <FileCheck2 size={20} />, label: 'Reporte diario' },
   ];
 
   return (

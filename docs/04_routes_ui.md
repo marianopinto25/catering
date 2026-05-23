@@ -95,14 +95,81 @@
 └────────────────────┴──────────────────────────────┴──────────────────────────────┘
 ```
 
-## 5. Comedor Front (Tableta o Kiosco)
-*   `GET /comedor` -> Módulo especial. UI máxima escala, enfocado en input rápido (lector QR o teclado número grande).
-    *   Mensajes grandes y centricos: "Juan Perez validado O.K.", "Doble consumo detectado" (con alertas rojas evidentes).
-    *   Al final pide puntuación "⭐⭐⭐⭐⭐".
+## 5. Comedor Front (Tableta o Kiosco) - Sprint 3.1 Planning
+*   `GET /comedor/consumo` -> Registro operativo de consumo con identificación y firma.
+    *   Roles: `Cliente`, `Gerente`.
+    *   Pantalla de uso rápido con selector de turno (`Desayuno`, `Almuerzo`, `Cena`), fecha operativa y control segmentado de método (`CI`, `QR`).
+    *   Input manual grande para CI o código QR. No se requiere cámara en Sprint 3.1.
+    *   Al buscar trabajador:
+        *   Si existe y está activo, mostrar nombre completo, CI, cliente y botón **Registrar consumo**.
+        *   Si no existe, mostrar mensaje claro: **Trabajador no registrado**.
+        *   Solo para `Gerente`, mostrar acción **Registrar trabajador**.
+    *   Después de registrar consumo, mostrar canvas de firma del trabajador con acciones **Limpiar firma** y **Guardar firma**.
+    *   Si el trabajador ya consumió en el mismo turno/día, bloquear el registro y mostrar alerta visible. Para Sprint 3.1 queda planificada la autorización de `Gerente`.
+*   `GET /comedor/trabajadores` -> Listado y mantenimiento del padrón de trabajadores.
+    *   Roles: `Gerente`.
+    *   Tabla con CI, código QR, nombre completo, cliente, estado y acciones editar/desactivar.
+*   `GET /comedor/trabajadores/nuevo` -> Formulario de alta de trabajador.
+    *   Roles: `Gerente`.
+    *   Campos: CI, código QR opcional, nombres, apellidos, cliente, estado.
+    *   Debe poder abrirse desde el flujo de consumo cuando la búsqueda no encuentra trabajador.
+
+### Wireframe textual Sprint 3.1 - Registro de consumo
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│ Consumo de comensales                         Fecha: 23/05/2026     │
+│ Turno: [Desayuno] [Almuerzo] [Cena]            Método: [CI] [QR]     │
+│                                                                     │
+│ CI o código QR                                                      │
+│ [ 1234567                                      ] [Buscar]           │
+│                                                                     │
+│ Trabajador validado                                                 │
+│ Juan Perez · CI 1234567 · Cliente Obra Central                      │
+│ [Registrar consumo]                                                 │
+│                                                                     │
+│ Firma del trabajador                                                │
+│ ┌───────────────────────────────────────────────────────────────┐   │
+│ │                                                               │   │
+│ │                    canvas de firma                            │   │
+│ │                                                               │   │
+│ └───────────────────────────────────────────────────────────────┘   │
+│ [Limpiar firma]                                  [Guardar firma]    │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## 6. Reportes
 *   `GET /reportes` -> Selector de rangos de fechas (Datepicker).
     *   Botones "Exportar PDF" (ícono rojo) y "Exportar Excel" (ícono verde).
+*   `GET /reportes/diario` -> Reporte diario de consumos por fecha y turno.
+    *   Roles: `Cliente`, `Gerente`.
+    *   Filtros superiores: fecha y turno.
+    *   Tabla: trabajador, CI, método de identificación, registrado por, hora de registro, firma del trabajador.
+    *   Estado visible: **Pendiente validación** o **Validado**.
+    *   Si está pendiente y el usuario tiene rol `Cliente`, mostrar panel de firma del cliente.
+    *   Si está validado, mostrar quién validó, fecha/hora y firma guardada.
+    *   Cocina y Almacén no deben ver acción de validación.
+*   `GET /reportes/diario/validar` -> Vista enfocada de validación del cliente.
+    *   Roles: `Cliente`.
+    *   Puede ser una subvista o panel dentro de `/reportes/diario`.
+    *   Muestra resumen de consumos, total por turno y canvas de firma del cliente.
+
+### Wireframe textual Sprint 3.1 - Validación de reporte diario
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│ Reporte diario                              Estado: Pendiente       │
+│ Fecha [23/05/2026]   Turno [Almuerzo]       Total consumos: 42       │
+│                                                                     │
+│ CI        Trabajador        Método     Registrado por     Firma      │
+│ 1234567   Juan Perez        CI         Cliente Obra       Ver        │
+│ 7654321   Maria Rojas       QR         Cliente Obra       Ver        │
+│                                                                     │
+│ Validación del cliente                                               │
+│ ┌───────────────────────────────────────────────────────────────┐   │
+│ │                    canvas de firma cliente                    │   │
+│ └───────────────────────────────────────────────────────────────┘   │
+│ [Limpiar firma]                               [Validar reporte]     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## 7. Usuarios y Facturación
 *   `GET /configuracion/usuarios` -> Tabla de staff.

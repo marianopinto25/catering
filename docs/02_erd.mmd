@@ -109,28 +109,50 @@ erDiagram
         datetime creado_en
     }
 
-    %% Módulo Consumo y Asistencia (Cliente final)
+    %% Módulo Consumo y Validación (Cliente final) - Sprint 3.1
     EmpresaCliente {
         int id PK
         string razon_social
     }
 
-    TrabajadoresCliente {
+    Trabajador {
         int id PK
         int cliente_id FK
-        string dni_codigo
+        string ci "Único"
         string nombres
-        string codigo_qr
-        boolean activo
+        string apellidos
+        string codigo_qr "Único opcional"
+        string estado "Activo/Inactivo"
     }
 
-    Consumos {
+    Consumo {
         int id PK
         int trabajador_id FK
-        int menu_item_id FK
-        datetime fechahora_consumo
+        date fecha
+        string turno "Desayuno/Almuerzo/Cena"
+        string metodo_identificacion "CI/QR"
+        int registrado_por FK
+        datetime registrado_en
         boolean doble_racion
-        boolean validado_offline
+        int autorizado_por FK "Gerente opcional"
+    }
+
+    ConsumoFirma {
+        int id PK
+        int consumo_id FK
+        string firma_base64
+        datetime firmado_en
+    }
+
+    ReporteValidacion {
+        int id PK
+        date fecha
+        string turno "Desayuno/Almuerzo/Cena"
+        int cliente_id FK
+        int validado_por FK
+        datetime validado_en
+        string firma_base64
+        string estado "Validado"
     }
 
     Feedback {
@@ -183,10 +205,13 @@ erDiagram
     Insumos ||--o{ PlatoInsumo : "compone receta"
     Platos ||--o{ AjustesReceta : "sufre modificaciones"
 
-    TrabajadoresCliente ||--o{ Consumos : "realiza"
-    MenuItem ||--o{ Consumos : "se consume en"
-    Consumos ||--o| Feedback : "genera"
-    EmpresaCliente ||--|{ TrabajadoresCliente : "emplea"
+    Trabajador ||--o{ Consumo : "realiza"
+    Consumo ||--o| ConsumoFirma : "tiene firma"
+    Consumo ||--o| Feedback : "genera"
+    EmpresaCliente ||--|{ Trabajador : "emplea"
+    EmpresaCliente ||--o{ ReporteValidacion : "valida reportes"
+    Usuarios ||--o{ Consumo : "registra"
+    Usuarios ||--o{ ReporteValidacion : "firma como cliente"
     EmpresaCliente ||--o{ Facturas : "paga"
 
     Usuarios ||--o{ AsistenciasStaff : "registra jornada"

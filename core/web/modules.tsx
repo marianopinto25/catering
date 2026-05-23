@@ -18,6 +18,7 @@ import MenuMensualPage from '../../modules/menu/ui/MenuMensualPage';
 import RecetasPage from '../../modules/menu/ui/RecetasPage';
 import ConsumoPage from '../../modules/consumos/ui/ConsumoPage';
 import TrabajadoresPage from '../../modules/trabajadores/ui/TrabajadoresPage';
+import ReporteDiarioPage from '../../modules/reportes/ui/ReporteDiarioPage';
 import Dashboard from '../../apps/web/src/Dashboard';
 
 // Rutas públicas (sin layout)
@@ -51,4 +52,6 @@ export const protectedRoutes: RouteObject[] = [
   // --- módulo/comedor ---
   { path: '/comedor/consumo',         element: <ConsumoPage /> },
   { path: '/comedor/trabajadores',    element: <TrabajadoresPage /> },
+  // --- módulo/reportes ---
+  { path: '/reportes/diario',          element: <ReporteDiarioPage /> },
 ];

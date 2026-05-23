@@ -130,15 +130,71 @@ Endpoints principales bajo prefijo actual `/api/`.
 *   **POST `/cocina/retiros`** - Solicitud de despacho de almacén a cocina.
 *   **POST `/cocina/cambios`** - Registrar reporte de última hora sobre insumos.
 
-## 4. Consumo (Comedor)
-*   **POST `/consumos/qr`** - Escaneo y marcado instantáneo de comida.
-    *   *Req:* `{ "codigo_qr": "hash-abcd", "menu_id": 99 }`
-    *   *Res:* `{ "status": "ok", "trabajador": "Juan Perez", "doble": false }`
-*   **POST `/consumos/feedback`** - Envio de encuesta de trabajador.
-*   **POST `/sync`** - Subida masiva desde aplicación PWA offline (App en comedor sin red).
+## 4. Consumo (Comedor) - Sprint 3.1 Planning
+Todos los endpoints usan JWT. El input QR es manual por ahora; no se planifica cámara ni OCR en este sprint. Las firmas se capturan dentro del software con canvas y se guardan como base64.
+
+*   **POST `/trabajadores`** - Crear trabajador/comensal autorizado.
+    *   *Roles:* `Gerente`.
+    *   *Req:* `{ "ci": "1234567", "codigo_qr": "QR-1234567", "nombres": "Juan", "apellidos": "Perez", "cliente_id": 1, "estado": "Activo" }`
+    *   *Validaciones:* `ci` único; `codigo_qr` único si se informa; `cliente_id` requerido; no borrar físico, usar estado.
+    *   *Res `201 Created`:* `{ id, ci, codigo_qr, nombres, apellidos, cliente_id, estado }`
+    *   *Res `400 Bad Request`:* `{ "error": "Trabajador ya registrado" }`
+*   **GET `/trabajadores?ci=...&qr=...`** - Buscar trabajador por CI o código QR.
+    *   *Roles:* `Cliente`, `Gerente`.
+    *   *Req query:* al menos uno de `ci` o `qr`.
+    *   *Res `200 OK`:* `{ id, ci, codigo_qr, nombres, apellidos, cliente, estado }`
+    *   *Res `404 Not Found`:* `{ "error": "Trabajador no registrado", "accion": "registrar_trabajador" }`
+    *   Nota UI: la opción **Registrar trabajador** solo se habilita para `Gerente`.
+*   **POST `/consumos`** - Registrar consumo por fecha, turno y trabajador.
+    *   *Roles:* `Cliente`, `Gerente`.
+    *   *Req:* `{ "trabajador_id": 10, "fecha": "2026-05-23", "turno": "Almuerzo", "metodo_identificacion": "CI|QR" }`
+    *   *Datos de auditoría:* `registrado_por` sale del JWT, no del body.
+    *   *Validaciones:* trabajador activo; turno válido (`Desayuno|Almuerzo|Cena`); único por `trabajador_id + fecha + turno`.
+    *   *Res `201 Created`:* `{ id, trabajador_id, fecha, turno, metodo_identificacion, registrado_por, estado_firma: "Pendiente" }`
+    *   *Res `409 Conflict`:* `{ "error": "El trabajador ya registró consumo en este turno", "requiere_autorizacion_gerente": true }`
+    *   Nota Sprint 3.1: la excepción de doble consumo queda planificada para `Gerente`, pero la primera implementación puede bloquear y mostrar el mensaje.
+*   **GET `/consumos?fecha=YYYY-MM-DD&turno=Almuerzo`** - Listar consumos del día y turno.
+    *   *Roles:* `Cliente`, `Gerente`.
+    *   *Res `200 OK`:* `[{ id, fecha, turno, metodo_identificacion, trabajador: { id, ci, nombres, apellidos }, firma: { existe: true }, registrado_por }]`
+*   **POST `/consumos/:id/firma`** - Guardar firma digital del trabajador asociada a un consumo.
+    *   *Roles:* `Cliente`, `Gerente`.
+    *   *Req:* `{ "firma_base64": "data:image/png;base64,..." }`
+    *   *Validaciones:* consumo existe; firma no vacía; una firma activa por consumo.
+    *   *Res `201 Created`:* `{ consumo_id, firmado_en, tiene_firma: true }`
+*   **POST `/consumos/feedback`** - Envío de encuesta de trabajador. Se mantiene como flujo futuro/no prioritario.
+*   **POST `/sync`** - Subida masiva desde aplicación PWA offline. No entra en Sprint 3.1.
 
 ## 5. Reportes y Facturas
-*   **GET `/reportes/diario`** - Agregación SQL sumando consumos del día en curso.
+*   **GET `/reportes/diario?fecha=YYYY-MM-DD&turno=Almuerzo`** - Consulta/genera reporte diario de consumos por fecha y turno.
+    *   *Roles:* `Cliente`, `Gerente`.
+    *   *Res `200 OK`:*
+        ```json
+        {
+          "fecha": "2026-05-23",
+          "turno": "Almuerzo",
+          "estado": "Pendiente validación",
+          "total_consumos": 2,
+          "consumos": [
+            {
+              "id": 1,
+              "trabajador": { "ci": "1234567", "nombre_completo": "Juan Perez" },
+              "metodo_identificacion": "CI",
+              "firmado": true,
+              "registrado_por": { "id": 4, "nombre": "Cliente Obra" }
+            }
+          ],
+          "validacion": null
+        }
+        ```
+    *   Si ya fue validado, `estado = "Validado"` e incluye `validacion`.
+    *   Nota técnica: `ReporteDiario` puede implementarse como vista calculada por `fecha + turno`; solo `ReporteValidacion` necesita persistencia obligatoria.
+*   **POST `/reportes/diario/validar`** - Firma del cliente para validar reporte diario.
+    *   *Roles:* `Cliente`.
+    *   *Req:* `{ "fecha": "2026-05-23", "turno": "Almuerzo", "firma_base64": "data:image/png;base64,..." }`
+    *   *Datos de auditoría:* `validado_por` y `validado_en` se toman del JWT/servidor.
+    *   *Validaciones:* reporte no validado previamente; firma obligatoria; Cocina/Almacén no pueden validar.
+    *   *Res `201 Created`:* `{ "fecha": "2026-05-23", "turno": "Almuerzo", "estado": "Validado", "validado_por": 4, "validado_en": "2026-05-23T18:10:00.000Z" }`
+    *   *Res `409 Conflict`:* `{ "error": "El reporte ya fue validado" }`
 *   **GET `/reportes/export`** - Generación de descarga (recibe param `format=pdf|excel`).
 *   **POST `/facturacion`** - Genera bloque de facturación consolidando reportes validados.
 

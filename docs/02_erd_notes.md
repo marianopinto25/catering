@@ -57,11 +57,34 @@
     *   Agrupa por insumo para alimentar decisiones de cocina, inventario y futuras compras sugeridas.
 *   **AjustesReceta:** Bitácora por si cocinero debe sustituir ingredientes (CU17). En Sprint 4 queda documentado, no implementado como flujo principal.
 
-## 4. Consumo y Asistencia (Comensales)
-*   **EmpresaCliente:** La constructora u organización que paga el servicio de alimentación.
-*   **TrabajadoresCliente:** El padrón de personal que comerá. Claves: `dni_codigo`, `codigo_qr` (CU19).
-*   **Consumos:** Tabla de máxima concurrencia en la operación diaria. Clave: `doble_racion` (CU22) y el enlace `menu_id` y `trabajador_id` de forma que sea único por comida (para evitar consumos piratas, CU20).
-*   **Feedback:** Satisfacción (estrellas/caritas). Vinculado unitariamente al consumo (CU23).
+## 4. Consumo y Validación (Comensales) - Sprint 3.1
+*   **EmpresaCliente:** La constructora u organización que paga el servicio de alimentación. En Sprint 3.1 se reutiliza como entidad cliente; no se crea una tabla `Cliente` separada si `EmpresaCliente` cubre la relación.
+*   **Trabajador:** Padrón de comensales autorizados por cliente.
+    *   `ci`: Identificador principal para digitación manual. Debe ser único.
+    *   `codigo_qr`: Identificador alternativo para lector QR. Es opcional en el alta inicial, pero debe ser único cuando exista.
+    *   `estado`: `Activo` o `Inactivo`; no se recomienda borrado físico porque afecta auditoría de consumos.
+    *   Roles: el CRUD del padrón corresponde a `Gerente`.
+*   **Consumo:** Registro operativo de que un trabajador consumió un servicio.
+    *   `fecha`: Fecha operativa del consumo.
+    *   `turno`: `Desayuno`, `Almuerzo` o `Cena`.
+    *   `metodo_identificacion`: `CI` o `QR`, según cómo se identificó al trabajador.
+    *   `registrado_por`: Usuario que operó el registro, tomado desde JWT.
+    *   Debe existir una restricción única por `trabajador_id + fecha + turno` para evitar doble consumo.
+    *   `doble_racion` y `autorizado_por` quedan previstos para excepción por `Gerente`; la primera entrega puede bloquear el duplicado.
+*   **ConsumoFirma:** Firma digital del trabajador hecha dentro del software.
+    *   `firma_base64`: Imagen generada desde canvas, por ejemplo `data:image/png;base64,...`.
+    *   Relación uno a uno con `Consumo`; la firma pertenece a un consumo específico, no al trabajador en general.
+    *   No se usa OCR para firmas.
+*   **ReporteDiario:** Concepto de consulta por `fecha + turno`. Puede implementarse como vista/calculado en API en vez de tabla física.
+    *   Contiene lista de consumos, firmas, total de consumos y estado.
+    *   Estado calculado: `Pendiente validación` cuando no existe `ReporteValidacion`; `Validado` cuando existe.
+*   **ReporteValidacion:** Firma del cliente para cerrar un reporte diario.
+    *   Clave lógica única recomendada: `cliente_id + fecha + turno`.
+    *   `validado_por`: Usuario con rol `Cliente` que firma el reporte.
+    *   `validado_en`: Fecha/hora del servidor.
+    *   `firma_base64`: Firma del cliente capturada en canvas.
+    *   Cocina y Almacén no pueden crear validaciones.
+*   **Feedback:** Satisfacción (estrellas/caritas). Vinculado unitariamente al consumo (CU23). No es prioridad del Sprint 3.1.
 
 ## 5. Staff Catering (Usuarios)
 *   **Usuarios:** Control de acceso (JWT). Clave: `rol` (determina acceso a submódulos).
