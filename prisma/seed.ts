@@ -129,6 +129,30 @@ async function main() {
     },
   });
 
+  await prisma.proveedorInsumo.upsert({
+    where: { proveedor_id_insumo_id: { proveedor_id: proveedor.id, insumo_id: arroz.id } },
+    update: { precio_unitario: 7, es_preferido: true, estado: 'Activo' },
+    create: {
+      proveedor_id: proveedor.id,
+      insumo_id: arroz.id,
+      precio_unitario: 7,
+      es_preferido: true,
+      estado: 'Activo',
+    },
+  });
+
+  await prisma.proveedorInsumo.upsert({
+    where: { proveedor_id_insumo_id: { proveedor_id: proveedor.id, insumo_id: pollo.id } },
+    update: { precio_unitario: 18, es_preferido: true, estado: 'Activo' },
+    create: {
+      proveedor_id: proveedor.id,
+      insumo_id: pollo.id,
+      precio_unitario: 18,
+      es_preferido: true,
+      estado: 'Activo',
+    },
+  });
+
   const plato = await prisma.plato.upsert({
     where: { nombre: 'Arroz con pollo' },
     update: { descripcion: 'Plato base de almuerzo corporativo' },

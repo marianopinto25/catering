@@ -39,5 +39,6 @@ const ProduccionController = __importStar(require("./controller"));
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
 router.get('/', ProduccionController.getProducciones);
+router.post('/', ProduccionController.registrarProduccion);
 router.get('/kardex', ProduccionController.getKardex);
 exports.default = router;
