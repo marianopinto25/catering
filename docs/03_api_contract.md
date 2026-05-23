@@ -10,14 +10,27 @@ Endpoints principales bajo prefijo actual `/api/`.
     *   *Req Sprint 3:* mismos campos de creación. Los campos de responsable son obligatorios para cumplir contacto real del proveedor.
 *   **POST `/compras`** - Registra compra y genera ingresos a inventario automáticamente.
     *   *Req:* `{ proveedor_id: 1, fecha: "2024-04-12", items: [{ insumo_id: 5, cantidad: 10, precio_unitario: 15.0, fecha_vencimiento: "2024-12-01" }] }`
-*   **GET `/compras/sugerencia?anio=2026&mes=4&semana=1`** - Calcula lista sugerida de compra basada en menú semanal, existencia y compras en orden.
-    *   *Req query Sprint 5:* `anio`, `mes`, `semana`.
-    *   *Res Sprint 5:*
+*   **GET `/compras/sugerencia?mes=4&semana=1`** - Calcula lista sugerida de compra basada en menú semanal, existencia y compras en orden. No registra compra.
+    *   *Req query Sprint 5:* `mes` y `semana` obligatorios; `anio` opcional para fijar el año operativo.
+    *   *Ejemplo recomendado:* `GET /api/compras/sugerencia?anio=2026&mes=4&semana=1`
+    *   *Res `200 OK` Sprint 5:*
         ```json
         {
           "anio": 2026,
           "mes": 4,
           "semana": 1,
+          "menu": {
+            "id": 12,
+            "estado": "BORRADOR",
+            "items": [
+              {
+                "dia": "Lunes",
+                "turno": "Almuerzo",
+                "plato": "Pollo al horno",
+                "porciones_estimadas": 120
+              }
+            ]
+          },
           "items": [
             {
               "insumo_id": 1,
@@ -35,6 +48,8 @@ Endpoints principales bajo prefijo actual `/api/`.
         ```
     *   Fórmula: `sugerido = min(max(0, requerido - (existencia + enOrden)), limite_perecible)`.
     *   Las unidades se determinan desde la receta del plato (`PlatoInsumo.unidad_medida`).
+    *   *Res `400 Bad Request`:* `{ "error": "Parámetros inválidos: mes debe ser 1-12 y semana 1-4" }`
+    *   *Res `404 Not Found`:* `{ "error": "No existe menú para el mes y año seleccionados" }`
 
 ## 2. Inventario y Alertas
 *   **GET `/insumos`** - Lista de insumos (Catálogo maestro).
@@ -50,6 +65,40 @@ Endpoints principales bajo prefijo actual `/api/`.
 *   **POST `/inventario/movimientos`** - Registrar entrada/salida/merma.
     *   *Req Sprint 3:* `{ insumo_id: 2, tipo: "Ajuste", cantidad: 5, motivo: "Vencido|Dañado|Sobrante", inventario_id: 10 }`
     *   Nota: vencido, dañado y sobrante se tratan como ajustes de inventario, no como estados visibles.
+*   **GET `/vida-util/sugerir?insumo_id=2&fecha_recepcion=2026-05-03&temporada=Templado&madurez=Medio`** - Sugiere vida útil y fecha de vencimiento para lotes sin fecha impresa. No guarda inventario.
+    *   *Req query Sprint 6:* `insumo_id` y `fecha_recepcion` obligatorios; `temporada` opcional (`Verano|Invierno|Templado`); `madurez` opcional (`Verde|Medio|Maduro|No aplica`).
+    *   *Res `200 OK` con regla local:*
+        ```json
+        {
+          "insumo_id": 2,
+          "insumo": "Tomate",
+          "categoria": "Verduras",
+          "fecha_recepcion": "2026-05-03",
+          "temporada": "Templado",
+          "madurez": "Medio",
+          "vida_util_dias_base": 5,
+          "ajuste_temporada": 0,
+          "ajuste_madurez": 0,
+          "vida_util_sugerida_dias": 5,
+          "fecha_vencimiento_sugerida": "2026-05-08",
+          "fuente": "regla_insumo",
+          "editable": true,
+          "requiere_revision": false
+        }
+        ```
+    *   *Res `200 OK` sin regla local Fase 1:*
+        ```json
+        {
+          "insumo_id": 99,
+          "insumo": "Producto sin regla",
+          "fuente": "sin_regla",
+          "editable": true,
+          "requiere_revision": true,
+          "mensaje": "Ingrese fecha manual o agregue regla de vida útil"
+        }
+        ```
+    *   Fórmula: `vida_util_sugerida_dias = max(1, vida_util_dias_base + ajuste_temporada + ajuste_madurez)`.
+    *   Fase 2 opcional: si `VIDA_UTIL_AI_ENABLED=true` y no hay regla local, puede llamar un estimador IA mediante interfaz interna. Por defecto queda desactivado.
 *   **GET `/alertas?dias=7`** - Alertas para anticipar uso de cocina: bajo stock y lotes próximos a vencer.
     *   Wording UI esperado: indicar qué puede afectar la preparación y con cuánta anticipación actuar.
 

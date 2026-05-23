@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticateToken);
 
 router.post('/', ComprasController.registrarCompra);
+router.post('/generar-desde-sugerencia', ComprasController.generarComprasDesdeSugerencia);
 router.get('/', ComprasController.getCompras);
 router.get('/sugerencia', ComprasController.getSugerenciaCompra);
 router.get('/:id', ComprasController.getCompraById);

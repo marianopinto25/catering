@@ -39,6 +39,7 @@ const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
 router.post('/', ComprasController.registrarCompra);
+router.post('/generar-desde-sugerencia', ComprasController.generarComprasDesdeSugerencia);
 router.get('/', ComprasController.getCompras);
 router.get('/sugerencia', ComprasController.getSugerenciaCompra);
 router.get('/:id', ComprasController.getCompraById);

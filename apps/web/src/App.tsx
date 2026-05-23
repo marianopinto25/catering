@@ -1,12 +1,64 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from '../../../core/web/AuthContext';
 import Sidebar from '../../../core/web/Sidebar';
 import ThemeToggle from '../../../core/web/ThemeToggle';
 import { publicRoutes, protectedRoutes } from '../../../core/web/modules';
 
+const RouteChangeLoader: React.FC = () => {
+  const location = useLocation();
+  const firstRender = React.useRef(true);
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+
+    setVisible(true);
+    const timeout = window.setTimeout(() => setVisible(false), 520);
+    return () => window.clearTimeout(timeout);
+  }, [location.pathname]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          className="route-loader"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+        >
+          <motion.div
+            className="route-loader-card"
+            initial={{ y: 12, scale: 0.98 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ y: -8, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            <div className="route-loader-mark">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div>
+              <strong>El Junte</strong>
+              <p>Cargando pantalla...</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const sidebarWidth = sidebarCollapsed ? 76 : 260;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -14,13 +66,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   return (
     <div style={{ display: 'flex' }}>
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(prev => !prev)} />
       <main style={{
-        marginLeft: '260px',
+        marginLeft: `${sidebarWidth}px`,
         padding: '2.5rem',
-        width: 'calc(100% - 260px)',
+        width: `calc(100% - ${sidebarWidth}px)`,
         minHeight: '100vh',
-        background: 'var(--bg-color)'
+        background: 'var(--bg-color)',
+        transition: 'margin-left 0.2s ease, width 0.2s ease'
       }}>
         {children}
       </main>
@@ -85,6 +138,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <ThemeToggle />
+          <RouteChangeLoader />
           <AppRoutes />
         </Router>
       </AuthProvider>

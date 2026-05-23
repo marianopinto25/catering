@@ -35,10 +35,11 @@ async function main() {
   });
 
   const arroz = await prisma.insumo.upsert({
-    where: { nombre: 'Arroz' },
+    where: { nombre_marca: { nombre: 'Arroz', marca: 'Genérica' } },
     update: {},
     create: {
       nombre: 'Arroz',
+      marca: 'Genérica',
       unidad_medida: 'Kg',
       categoria: 'Abarrotes',
       stock_minimo: 10,
@@ -47,10 +48,11 @@ async function main() {
   });
 
   const pollo = await prisma.insumo.upsert({
-    where: { nombre: 'Pollo' },
+    where: { nombre_marca: { nombre: 'Pollo', marca: 'Genérica' } },
     update: {},
     create: {
       nombre: 'Pollo',
+      marca: 'Genérica',
       unidad_medida: 'Kg',
       categoria: 'Carnes',
       stock_minimo: 8,

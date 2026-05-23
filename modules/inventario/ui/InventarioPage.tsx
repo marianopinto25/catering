@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@core/AuthContext';
-import { Package, Ban, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, Ban, History, ChevronDown, CalendarDays, ShoppingBag, Tag, Truck } from 'lucide-react';
 
 interface InventarioLote {
   id: number;
-  lote: string;
   fecha_vencimiento: string;
   cantidad_actual: number;
+  compra_id?: number | null;
+  fecha_compra?: string | null;
+  proveedor_nombre?: string;
 }
 
 interface ResumenInventario {
   insumo_id: number;
   nombre: string;
+  marca?: string;
   unidad_medida: string;
   categoria: string;
   stock_minimo: number;
@@ -62,6 +65,29 @@ const InventarioPage: React.FC = () => {
     fetchInventario();
   }, []);
 
+  const formatCantidad = (value: number, unidad: string) => {
+    if (unidad.toLowerCase() === 'unidad') return String(Math.round(value));
+    return value.toLocaleString('es-BO', {
+      minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const formatFecha = (value?: string | null) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('es-BO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const getStockTone = (insumo: ResumenInventario) => {
+    if (insumo.onHand <= 0) return { label: 'Sin stock', className: 'is-danger' };
+    if (insumo.onHand <= insumo.stock_minimo) return { label: 'Bajo mínimo', className: 'is-warning' };
+    return { label: 'Disponible', className: 'is-ok' };
+  };
+
   const registrarAjuste = async (loteId: number, tipo: 'Vencido' | 'Dañado') => {
     const cantidad = window.prompt(`Cantidad para ajuste por ${tipo}:`, '0');
     if (!cantidad || isNaN(Number(cantidad)) || Number(cantidad) <= 0) return;
@@ -98,113 +124,121 @@ const InventarioPage: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <header style={{ marginBottom: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Package size={28} /> Control de Inventario
-        </h2>
-        <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-          Existencia, compras en orden y solicitudes internas de cocina.
-        </p>
+      <header className="inventory-header">
+        <div>
+          <h2>
+            <Package size={30} /> Control de Inventario
+          </h2>
+          <p>Existencia real, compras en camino y lotes disponibles para cocina.</p>
+        </div>
+        <div className="inventory-header-badge">
+          <span>{inventario.length}</span>
+          <small>insumos activos</small>
+        </div>
       </header>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="table-container">
-          <thead>
-            <tr>
-              <th style={{ width: '40px' }}></th>
-              <th>Insumo</th>
-              <th>Categoría</th>
-              <th>Existencia</th>
-              <th>En orden</th>
-              <th>Solicitado</th>
-              <th>Unidad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inventario.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No hay insumos registrados.</td></tr>
-            ) : (
-              inventario.map(insumo => (
-                <React.Fragment key={insumo.insumo_id}>
-                  <tr
-                    style={{
-                      cursor: 'pointer',
-                      background: expandedRow === insumo.insumo_id ? '#f8fafc' : 'transparent',
-                      transition: 'background 0.2s ease'
-                    }}
-                    onClick={() => setExpandedRow(expandedRow === insumo.insumo_id ? null : insumo.insumo_id)}
-                  >
-                    <td style={{ textAlign: 'center' }}>
-                      {expandedRow === insumo.insumo_id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </td>
-                    <td><strong style={{ fontWeight: 600 }}>{insumo.nombre}</strong></td>
-                    <td><span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{insumo.categoria}</span></td>
-                    <td style={{ fontWeight: 700 }}>{insumo.onHand.toFixed(2)}</td>
-                    <td>{insumo.onOrder.toFixed(2)}</td>
-                    <td>{insumo.requested.toFixed(2)}</td>
-                    <td>{insumo.unidad_medida}</td>
-                  </tr>
+      <div className="inventory-list">
+        {inventario.length === 0 ? (
+          <div className="card inventory-empty">No hay insumos registrados.</div>
+        ) : (
+          inventario.map(insumo => {
+            const isOpen = expandedRow === insumo.insumo_id;
+            const tone = getStockTone(insumo);
+            return (
+              <motion.article
+                key={insumo.insumo_id}
+                className={isOpen ? 'inventory-card is-open' : 'inventory-card'}
+                layout
+              >
+                <button
+                  type="button"
+                  className="inventory-card-main"
+                  onClick={() => setExpandedRow(isOpen ? null : insumo.insumo_id)}
+                >
+                  <span className="inventory-expand-icon">
+                    <ChevronDown size={18} />
+                  </span>
+                  <span className="inventory-name-block">
+                    <strong>{insumo.nombre}</strong>
+                    <small>{insumo.marca || 'Marca no registrada'} · {insumo.categoria}</small>
+                  </span>
+                  <span className={`inventory-status ${tone.className}`}>{tone.label}</span>
+                  <span className="inventory-metric">
+                    <small>Existencia</small>
+                    <strong>{formatCantidad(insumo.onHand, insumo.unidad_medida)}</strong>
+                  </span>
+                  <span className="inventory-metric">
+                    <small>En orden</small>
+                    <strong>{formatCantidad(insumo.onOrder, insumo.unidad_medida)}</strong>
+                  </span>
+                  <span className="inventory-metric">
+                    <small>Solicitado</small>
+                    <strong>{formatCantidad(insumo.requested, insumo.unidad_medida)}</strong>
+                  </span>
+                  <span className="inventory-unit">{insumo.unidad_medida}</span>
+                </button>
 
-                  <AnimatePresence>
-                    {expandedRow === insumo.insumo_id && (
-                      <motion.tr
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <td colSpan={7} style={{ padding: '0 1.5rem 1.5rem 3.5rem', background: '#fcfcfc' }}>
-                          <div style={{ padding: '1.25rem', background: '#fff', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase' }}>Desglose por Lotes</p>
-                            <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
-                              <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>
-                                  <th style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontWeight: 500 }}>Cód. Lote</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontWeight: 500 }}>Vencimiento</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontWeight: 500 }}>Cant.</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Ajustes</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {insumo.inventarios.map(lote => (
-                                  <tr key={lote.id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                    <td style={{ padding: '0.75rem 0.5rem' }}><code style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>{lote.lote || 'S/L'}</code></td>
-                                    <td style={{ padding: '0.75rem 0.5rem' }}>
-                                      {lote.fecha_vencimiento ? new Date(lote.fecha_vencimiento).toLocaleDateString() : '-'}
-                                    </td>
-                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>{lote.cantidad_actual}</td>
-                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); registrarAjuste(lote.id, 'Vencido'); }}
-                                        className="btn-secondary"
-                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                                      >
-                                        <History size={14} /> Vencido
-                                      </button>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); registrarAjuste(lote.id, 'Dañado'); }}
-                                        className="btn-danger"
-                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                                      >
-                                        <Ban size={14} /> Dañado
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                                {insumo.inventarios.length === 0 && (
-                                  <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No hay lotes disponibles para este insumo.</td></tr>
-                                )}
-                              </tbody>
-                            </table>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      className="inventory-lot-panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                    >
+                      <div className="inventory-lot-panel-inner">
+                        <div className="inventory-lot-heading">
+                          <div>
+                            <strong>Detalle por compras recibidas</strong>
+                            <span>Cada tarjeta representa una entrada separada al inventario.</span>
                           </div>
-                        </td>
-                      </motion.tr>
-                    )}
-                  </AnimatePresence>
-                </React.Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
+                          <span>{insumo.inventarios.length} registros</span>
+                        </div>
+
+                        {insumo.inventarios.length === 0 ? (
+                          <div className="inventory-empty-lots">No hay lotes disponibles para este insumo.</div>
+                        ) : (
+                          <div className="inventory-lot-grid">
+                            {insumo.inventarios.map(lote => (
+                              <article className="inventory-lot-card" key={lote.id}>
+                                <div className="inventory-lot-title">
+                                  <strong>{formatCantidad(lote.cantidad_actual, insumo.unidad_medida)} {insumo.unidad_medida}</strong>
+                                  <span>{lote.compra_id ? `Compra #${lote.compra_id}` : 'Ingreso manual'}</span>
+                                </div>
+
+                                <div className="inventory-lot-facts">
+                                  <span><Tag size={15} /> {insumo.marca || 'Marca no registrada'}</span>
+                                  <span><Truck size={15} /> {lote.proveedor_nombre || 'Proveedor no identificado'}</span>
+                                  <span><ShoppingBag size={15} /> Compra: {formatFecha(lote.fecha_compra)}</span>
+                                  <span><CalendarDays size={15} /> Vence: {formatFecha(lote.fecha_vencimiento)}</span>
+                                </div>
+
+                                <div className="inventory-lot-actions">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); registrarAjuste(lote.id, 'Vencido'); }}
+                                    className="btn-secondary"
+                                  >
+                                    <History size={14} /> Vencido
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); registrarAjuste(lote.id, 'Dañado'); }}
+                                    className="btn-danger"
+                                  >
+                                    <Ban size={14} /> Dañado
+                                  </button>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.article>
+            );
+          })
+        )}
       </div>
     </motion.div>
   );

@@ -11,9 +11,11 @@ const InsumoForm: React.FC = () => {
   const { token } = useAuth();
   
   const [nombre, setNombre] = useState('');
+  const [marca, setMarca] = useState('');
   const [unidad, setUnidad] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [stockMinimo, setStockMinimo] = useState(0);
+  const [stockMinimo, setStockMinimo] = useState<number | ''>('');
+  const [precioUnitario, setPrecioUnitario] = useState<number | ''>('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,9 +28,11 @@ const InsumoForm: React.FC = () => {
           const target = all.find((i: any) => i.id === Number(id));
           if (target) {
             setNombre(target.nombre);
+            setMarca(target.marca || 'Genérica');
             setUnidad(target.unidad_medida);
             setCategoria(target.categoria);
             setStockMinimo(target.stock_minimo);
+            setPrecioUnitario(target.precio_unitario || 0);
           }
         } catch (e) {
           console.error(e);
@@ -40,7 +44,8 @@ const InsumoForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (stockMinimo < 0) return setError('El stock mínimo no puede ser negativo');
+    if (stockMinimo === '' || Number(stockMinimo) < 0) return setError('Ingrese un stock mínimo válido');
+    if (precioUnitario === '' || Number(precioUnitario) <= 0) return setError('Ingrese un precio unitario mayor a 0');
     
     setLoading(true);
     setError('');
@@ -57,9 +62,11 @@ const InsumoForm: React.FC = () => {
         },
         body: JSON.stringify({ 
           nombre, 
+          marca,
           unidad_medida: unidad, 
           categoria, 
-          stock_minimo: stockMinimo 
+          stock_minimo: Number(stockMinimo),
+          precio_unitario: Number(precioUnitario)
         }),
       });
 
@@ -94,6 +101,18 @@ const InsumoForm: React.FC = () => {
             />
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Marca del insumo</label>
+            <input
+              type="text"
+              className="input-field"
+              value={marca}
+              onChange={e => setMarca(e.target.value)}
+              placeholder="Ej: Pil, Sofía, Delizia, Genérica"
+              required
+            />
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Unidad de Medida</label>
@@ -124,9 +143,24 @@ const InsumoForm: React.FC = () => {
               type="number" 
               className="input-field" 
               value={stockMinimo} 
-              onChange={e => setStockMinimo(Number(e.target.value))} 
+              onChange={e => setStockMinimo(e.target.value === '' ? '' : Number(e.target.value))}
               min="0"
+              placeholder="Ej: 10"
               required 
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Precio unitario de referencia (Bs por {unidad || 'unidad'})</label>
+            <input
+              type="number"
+              className="input-field"
+              value={precioUnitario}
+              onChange={e => setPrecioUnitario(e.target.value === '' ? '' : Number(e.target.value))}
+              min="0"
+              step="0.01"
+              placeholder="Ej: 12.50"
+              required
             />
           </div>
 

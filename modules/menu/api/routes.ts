@@ -17,10 +17,14 @@ menusRouter.delete('/:id/items/:itemId', MenuController.deleteMenuItem);
 menusRouter.get('/:id/requerimiento-semanal', MenuController.getRequerimientoSemanal);
 
 platosRouter.get('/', MenuController.getPlatos);
+platosRouter.get('/sugerir', MenuController.suggestPlato);
 platosRouter.post('/', MenuController.createPlato);
 platosRouter.put('/:id', MenuController.updatePlato);
 platosRouter.delete('/:id', MenuController.deletePlato);
 platosRouter.get('/:id/receta', MenuController.getReceta);
+platosRouter.get('/:id/receta-pasos', MenuController.getRecetaPasos);
+platosRouter.put('/:id/receta-pasos', MenuController.updateRecetaPasos);
+platosRouter.post('/:id/receta-pasos/regenerar', MenuController.regenerateRecetaPasos);
 platosRouter.post('/:id/receta', MenuController.addRecetaItem);
 platosRouter.put('/:id/receta/:recetaId', MenuController.updateRecetaItem);
 platosRouter.delete('/:id/receta/:recetaId', MenuController.deleteRecetaItem);

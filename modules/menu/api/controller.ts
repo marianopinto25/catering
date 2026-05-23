@@ -1,11 +1,31 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../../core/api/prisma';
+import { generateRecipeStepsWithGemini, suggestPlatoWithGemini } from './gemini';
 
 const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 const parseId = (value: string) => Number(value);
 
 const validateSemana = (semana: number) => Number.isInteger(semana) && semana >= 1 && semana <= 4;
+
+const buildPlatoSuggestion = async (nombre: string) => {
+  const insumos = await prisma.insumo.findMany({
+    where: { estado: 'Activo' },
+    orderBy: { nombre: 'asc' },
+    select: { id: true, nombre: true, unidad_medida: true, categoria: true }
+  });
+
+  const suggestion = await suggestPlatoWithGemini(nombre, insumos);
+  const insumoById = new Map(insumos.map(insumo => [insumo.id, insumo]));
+
+  return {
+    ...suggestion,
+    receta: suggestion.receta.map(item => ({
+      ...item,
+      insumo: insumoById.get(item.insumo_id)
+    })).filter(item => item.insumo)
+  };
+};
 
 const ensureMenuEditable = async (id: number) => {
   const menu = await prisma.menuMes.findUnique({ where: { id } });
@@ -32,13 +52,52 @@ export const getPlatos = async (_req: Request, res: Response) => {
   }
 };
 
+export const suggestPlato = async (req: Request, res: Response) => {
+  const nombre = String(req.query.nombre || '').trim();
+
+  try {
+    if (!nombre) return res.status(400).json({ error: 'El nombre del plato es obligatorio' });
+    const suggestion = await buildPlatoSuggestion(nombre);
+    res.json(suggestion);
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Error al sugerir plato con IA' });
+  }
+};
+
 export const createPlato = async (req: Request, res: Response) => {
-  const { nombre, descripcion } = req.body;
+  const { nombre, descripcion, receta } = req.body;
   try {
     if (!nombre) return res.status(400).json({ error: 'El nombre del plato es obligatorio' });
 
-    const plato = await prisma.plato.create({
-      data: { nombre, descripcion, estado: 'Activo' }
+    const plato = await prisma.$transaction(async tx => {
+      const created = await tx.plato.create({
+        data: { nombre, descripcion, estado: 'Activo' }
+      });
+
+      if (Array.isArray(receta)) {
+        for (const item of receta) {
+          const cantidad = Number(item.cantidad_por_porcion);
+          if (!item.insumo_id || !item.unidad_medida || cantidad <= 0) continue;
+          await tx.platoInsumo.upsert({
+            where: { plato_id_insumo_id: { plato_id: created.id, insumo_id: Number(item.insumo_id) } },
+            create: {
+              plato_id: created.id,
+              insumo_id: Number(item.insumo_id),
+              cantidad_por_porcion: cantidad,
+              unidad_medida: item.unidad_medida
+            },
+            update: {
+              cantidad_por_porcion: cantidad,
+              unidad_medida: item.unidad_medida
+            }
+          });
+        }
+      }
+
+      return tx.plato.findUnique({
+        where: { id: created.id },
+        include: { receta: { include: { insumo: true }, orderBy: { insumo: { nombre: 'asc' } } } }
+      });
     });
 
     res.status(201).json(plato);
@@ -91,6 +150,112 @@ export const getReceta = async (req: Request, res: Response) => {
     res.json(receta);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener receta' });
+  }
+};
+
+export const getRecetaPasos = async (req: Request, res: Response) => {
+  const plato_id = parseId(req.params.id);
+
+  try {
+    const cached = await prisma.platoRecetaPasos.findUnique({ where: { plato_id } });
+    if (cached) {
+      return res.json({
+        ...JSON.parse(cached.pasos_json),
+        foto_url: cached.foto_url,
+        fuente: cached.fuente,
+        cached: true,
+        updated_at: cached.updated_at
+      });
+    }
+
+    const plato = await prisma.plato.findUnique({
+      where: { id: plato_id },
+      include: {
+        receta: {
+          include: { insumo: true },
+          orderBy: { insumo: { nombre: 'asc' } }
+        }
+      }
+    });
+
+    if (!plato || plato.estado !== 'Activo') return res.status(404).json({ error: 'Plato no encontrado' });
+    if (plato.receta.length === 0) return res.status(400).json({ error: 'Primero cargue la receta base del plato' });
+
+    const steps = await generateRecipeStepsWithGemini({
+      nombre: plato.nombre,
+      descripcion: plato.descripcion,
+      receta: plato.receta
+    });
+
+    await prisma.platoRecetaPasos.create({
+      data: {
+        plato_id,
+        pasos_json: JSON.stringify(steps),
+        fuente: 'gemini'
+      }
+    });
+
+    res.json({ ...steps, cached: false });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Error al generar receta paso a paso' });
+  }
+};
+
+export const updateRecetaPasos = async (req: Request, res: Response) => {
+  const plato_id = parseId(req.params.id);
+  const { titulo, rendimiento, tiempo_estimado, pasos, tips, foto_url } = req.body;
+
+  try {
+    if (!titulo || !rendimiento || !tiempo_estimado || !Array.isArray(pasos) || pasos.length === 0) {
+      return res.status(400).json({ error: 'Título, rendimiento, tiempo y pasos son obligatorios' });
+    }
+
+    const payload = {
+      titulo: String(titulo).trim(),
+      rendimiento: String(rendimiento).trim(),
+      tiempo_estimado: String(tiempo_estimado).trim(),
+      pasos: pasos.map((paso: unknown) => String(paso || '').trim()).filter(Boolean),
+      tips: Array.isArray(tips) ? tips.map((tip: unknown) => String(tip || '').trim()).filter(Boolean) : [],
+      fuente: 'chef'
+    };
+
+    if (payload.pasos.length === 0) return res.status(400).json({ error: 'Agregue al menos un paso' });
+
+    const saved = await prisma.platoRecetaPasos.upsert({
+      where: { plato_id },
+      create: {
+        plato_id,
+        pasos_json: JSON.stringify(payload),
+        foto_url: foto_url || null,
+        fuente: 'chef'
+      },
+      update: {
+        pasos_json: JSON.stringify(payload),
+        foto_url: foto_url || null,
+        fuente: 'chef'
+      }
+    });
+
+    res.json({
+      ...payload,
+      foto_url: saved.foto_url,
+      fuente: saved.fuente,
+      cached: true,
+      updated_at: saved.updated_at
+    });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Error al guardar receta' });
+  }
+};
+
+export const regenerateRecetaPasos = async (req: Request, res: Response) => {
+  const plato_id = parseId(req.params.id);
+
+  try {
+    await prisma.platoRecetaPasos.deleteMany({ where: { plato_id } });
+    return getRecetaPasos(req, res);
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Error al regenerar receta' });
   }
 };
 

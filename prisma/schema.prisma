@@ -31,20 +31,39 @@ model Proveedor {
   responsable_email     String   @default("")
   estado                String   @default("Activo") // "Activo" o "Inactivo" para borrado lógico
   compras               Compra[]
+  insumos               ProveedorInsumo[]
 }
 
 model Insumo {
   id             Int      @id @default(autoincrement())
-  nombre         String   @unique
+  nombre         String
+  marca          String   @default("Genérica")
   unidad_medida  String
   categoria      String
   stock_minimo   Float    @default(0)
+  precio_unitario Float    @default(0)
   estado         String   @default("Activo") // Activo o Inactivo
   compras_det    CompraDetalle[]
   inventarios    Inventario[]
   movimientos    MovimientoInventario[]
   solicitudes     SolicitudInsumo[]
   recetas         PlatoInsumo[]
+  proveedores     ProveedorInsumo[]
+
+  @@unique([nombre, marca])
+}
+
+model ProveedorInsumo {
+  id              Int       @id @default(autoincrement())
+  proveedor_id    Int
+  proveedor       Proveedor @relation(fields: [proveedor_id], references: [id])
+  insumo_id       Int
+  insumo          Insumo    @relation(fields: [insumo_id], references: [id])
+  precio_unitario Float
+  es_preferido    Boolean   @default(false)
+  estado          String    @default("Activo")
+
+  @@unique([proveedor_id, insumo_id])
 }
 
 model Compra {
@@ -110,7 +129,19 @@ model Plato {
   descripcion String?
   estado      String   @default("Activo")
   receta      PlatoInsumo[]
+  receta_pasos PlatoRecetaPasos?
   menu_items  MenuItem[]
+}
+
+model PlatoRecetaPasos {
+  id          Int      @id @default(autoincrement())
+  plato_id    Int      @unique
+  plato       Plato    @relation(fields: [plato_id], references: [id])
+  pasos_json  String
+  foto_url    String?
+  fuente      String   @default("gemini")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 model PlatoInsumo {
@@ -147,4 +178,21 @@ model MenuItem {
   porciones_estimadas  Int
 
   @@unique([menu_mes_id, semana, dia, turno])
+}
+
+model VidaUtilIaCache {
+  id                        Int      @id @default(autoincrement())
+  insumo_id                 Int
+  ambiente                  String
+  variante                  Int
+  vida_util_sugerida_dias   Int
+  razon_corta               String
+  explicacion               String
+  accion_sugerida           String
+  usos                      Int      @default(0)
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  @@unique([insumo_id, ambiente, variante])
+  @@index([insumo_id, ambiente])
 }

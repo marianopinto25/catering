@@ -10,6 +10,7 @@ import insumosRouter from '../../modules/insumos/api/routes';
 import comprasRouter from '../../modules/compras/api/routes';
 import inventarioRouter from '../../modules/inventario/api/routes';
 import alertasRouter from '../../modules/alertas/api/routes';
+import vidaUtilRouter from '../../modules/vida-util/api/routes';
 import { menusRouter, platosRouter } from '../../modules/menu/api/routes';
 
 export const activeModules: Array<{ path: string; router: Router }> = [
@@ -18,6 +19,7 @@ export const activeModules: Array<{ path: string; router: Router }> = [
   { path: '/api/insumos',     router: insumosRouter },
   { path: '/api/compras',     router: comprasRouter },
   { path: '/api/inventario',  router: inventarioRouter },
+  { path: '/api/vida-util',   router: vidaUtilRouter },
   { path: '/api/alertas',     router: alertasRouter },
   { path: '/api/menus',       router: menusRouter },
   { path: '/api/platos',      router: platosRouter },

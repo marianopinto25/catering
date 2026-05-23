@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/apps/api/src/index.js",
     "db:push": "prisma db push --schema=../../prisma/schema.prisma",
     "db:seed": "ts-node ../../prisma/seed.ts"
   },

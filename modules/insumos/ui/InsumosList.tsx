@@ -3,13 +3,16 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@core/AuthContext';
 import { Plus, Pencil, Trash2, Shapes } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatMoney } from '@core/format';
 
 interface Insumo {
   id: number;
   nombre: string;
+  marca: string;
   unidad_medida: string;
   categoria: string;
   stock_minimo: number;
+  precio_unitario: number;
 }
 
 const InsumosList: React.FC = () => {
@@ -69,21 +72,25 @@ const InsumosList: React.FC = () => {
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Marca</th>
               <th>Categoría</th>
               <th>Unidad</th>
+              <th>Precio unit.</th>
               <th>Stock Mínimo</th>
               <th style={{ width: '120px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {insumos.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>No existen insumos en el catálogo.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center' }}>No existen insumos en el catálogo.</td></tr>
             ) : (
               insumos.map(i => (
                 <tr key={i.id}>
                   <td><strong>{i.nombre}</strong></td>
+                  <td>{i.marca || 'Genérica'}</td>
                   <td>{i.categoria}</td>
                   <td>{i.unidad_medida}</td>
+                  <td>{formatMoney(i.precio_unitario || 0)} / {i.unidad_medida}</td>
                   <td>{i.stock_minimo}</td>
                   <td style={{ display: 'flex', gap: '0.5rem' }}>
                     <Link to={`/insumos/${i.id}/editar`} className="btn-secondary" style={{ padding: '0.25rem 0.5rem' }}>

@@ -71,16 +71,61 @@ export const getInventario = async (req: Request, res: Response) => {
       include: {
         inventarios: {
           where: { cantidad_actual: { gt: 0 }, estado: 'Disponible' },
-          orderBy: { fecha_vencimiento: 'asc' }
+          orderBy: { fecha_vencimiento: 'asc' },
+          include: {
+            movimientos: {
+              where: { tipo_movimiento: 'Ingreso' },
+              orderBy: { fecha: 'asc' },
+              take: 1
+            }
+          }
         }
       }
     });
 
+    const compraIds = new Set<number>();
+    for (const insumo of insumos) {
+      for (const inventario of insumo.inventarios) {
+        const motivo = inventario.movimientos[0]?.motivo || '';
+        const fromMotivo = motivo.match(/Compra #(\d+)/i)?.[1];
+        const fromLote = inventario.lote?.match(/^AUTO-(\d+)-/)?.[1];
+        const compraId = Number(fromMotivo || fromLote);
+        if (Number.isInteger(compraId) && compraId > 0) compraIds.add(compraId);
+      }
+    }
+
+    const compras = await prisma.compra.findMany({
+      where: { id: { in: Array.from(compraIds) } },
+      include: { proveedor: { select: { razon_social: true } } }
+    });
+    const compraById = new Map(compras.map(compra => [compra.id, compra]));
+
     // Calcular stock total para cada insumo para facilitar visualización
-    const inventarioFormateado = insumos.map(insumo => ({
-      ...insumo,
-      stock_total: insumo.inventarios.reduce((acc, inv) => acc + inv.cantidad_actual, 0)
-    }));
+    const inventarioFormateado = insumos.map(insumo => {
+      const inventarios = insumo.inventarios.map((inventario) => {
+        const motivo = inventario.movimientos[0]?.motivo || '';
+        const fromMotivo = motivo.match(/Compra #(\d+)/i)?.[1];
+        const fromLote = inventario.lote?.match(/^AUTO-(\d+)-/)?.[1];
+        const compraId = Number(fromMotivo || fromLote);
+        const compra = compraById.get(compraId);
+
+        return {
+          id: inventario.id,
+          fecha_vencimiento: inventario.fecha_vencimiento,
+          cantidad_actual: inventario.cantidad_actual,
+          estado: inventario.estado,
+          compra_id: Number.isInteger(compraId) && compraId > 0 ? compraId : null,
+          fecha_compra: compra?.fecha || inventario.movimientos[0]?.fecha || null,
+          proveedor_nombre: compra?.proveedor.razon_social || 'Proveedor no identificado'
+        };
+      });
+
+      return {
+        ...insumo,
+        inventarios,
+        stock_total: inventarios.reduce((acc, inv) => acc + inv.cantidad_actual, 0)
+      };
+    });
 
     res.json(inventarioFormateado);
   } catch (error) {
@@ -115,6 +160,7 @@ export const getResumenInventario = async (req: Request, res: Response) => {
     const resumen = insumos.map((insumo) => ({
       insumo_id: insumo.id,
       nombre: insumo.nombre,
+      marca: insumo.marca,
       unidad_medida: insumo.unidad_medida,
       categoria: insumo.categoria,
       stock_minimo: insumo.stock_minimo,
