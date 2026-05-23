@@ -38,6 +38,7 @@ const InsumosController = __importStar(require("./controller"));
 const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
+router.use((0, auth_middleware_1.requireRoles)(['GERENTE', 'CHEF']));
 router.get('/', InsumosController.getInsumos);
 router.post('/', InsumosController.createInsumo);
 router.put('/:id', InsumosController.updateInsumo);

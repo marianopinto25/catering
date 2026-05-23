@@ -41,6 +41,8 @@ exports.menusRouter = (0, express_1.Router)();
 exports.platosRouter = (0, express_1.Router)();
 exports.menusRouter.use(auth_middleware_1.authenticateToken);
 exports.platosRouter.use(auth_middleware_1.authenticateToken);
+exports.menusRouter.use((0, auth_middleware_1.requireRoles)(['GERENTE', 'CHEF']));
+exports.platosRouter.use((0, auth_middleware_1.requireRoles)(['GERENTE', 'CHEF']));
 exports.menusRouter.get('/', MenuController.getMenus);
 exports.menusRouter.post('/', MenuController.createMenu);
 exports.menusRouter.put('/:id', MenuController.updateMenu);

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../../../core/api/prisma");
+const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const router = (0, express_1.Router)();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-mock';
 router.post('/login', async (req, res) => {
@@ -22,6 +23,20 @@ router.post('/login', async (req, res) => {
         res.json({ token, user: { id: user.id, nombre: user.nombre, rol: user.rol } });
     }
     catch (error) {
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+router.get('/me', auth_middleware_1.authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma_1.prisma.usuario.findUnique({
+            where: { id: req.user.id },
+            select: { id: true, email: true, nombre: true, rol: true }
+        });
+        if (!user)
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json({ user });
+    }
+    catch {
         res.status(500).json({ error: 'Error del servidor' });
     }
 });

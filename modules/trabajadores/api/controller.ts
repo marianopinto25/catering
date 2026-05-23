@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { prisma } from '../../../core/api/prisma';
-import { AuthRequest } from '../../../core/api/auth.middleware';
+import { AuthRequest, normalizeRole } from '../../../core/api/auth.middleware';
 
-const canReadTrabajadores = (rol?: string) => rol === 'Gerente' || rol === 'Cliente';
+const canReadTrabajadores = (rol?: string) => normalizeRole(rol) === 'GERENTE';
 
 const buildQrCode = (ci: string) => `CATERING-${ci.replace(/\W+/g, '').toUpperCase()}`;
 
@@ -43,15 +43,16 @@ export const getTrabajadores = async (req: AuthRequest, res: Response) => {
 };
 
 export const createTrabajador = async (req: AuthRequest, res: Response) => {
-  if (req.user?.rol !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
+  if (normalizeRole(req.user?.rol) !== 'GERENTE') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
 
-  const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
+  const { ci, codigo_qr, nombres, apellidos, nombre, cliente_empresa, cliente_id, estado, crear_usuario, email, password } = req.body;
   const cleanCi = String(ci || '').trim();
   const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
+  const fullName = String(nombre || `${nombres || ''} ${apellidos || ''}`).trim();
 
   try {
-    if (!cleanCi || !nombres || !apellidos || !cliente_id) {
-      return res.status(400).json({ error: 'CI, nombres, apellidos y cliente son obligatorios' });
+    if (!cleanCi || !fullName) {
+      return res.status(400).json({ error: 'CI y nombre son obligatorios' });
     }
 
     const exists = await prisma.trabajador.findFirst({
@@ -64,14 +65,36 @@ export const createTrabajador = async (req: AuthRequest, res: Response) => {
     });
     if (exists) return res.status(400).json({ error: 'Trabajador ya registrado' });
 
+    let clienteId = Number(cliente_id);
+    if (!clienteId) {
+      const cliente = await prisma.cliente.upsert({
+        where: { razon_social: String(cliente_empresa || 'Empresa cliente') },
+        update: { estado: 'Activo' },
+        create: { razon_social: String(cliente_empresa || 'Empresa cliente'), estado: 'Activo' }
+      });
+      clienteId = cliente.id;
+    }
+
+    const user = crear_usuario && email
+      ? await prisma.usuario.upsert({
+        where: { email: String(email).trim() },
+        update: { nombre: fullName, rol: 'TRABAJADOR', password_hash: password || '123456' },
+        create: { email: String(email).trim(), nombre: fullName, rol: 'TRABAJADOR', password_hash: password || '123456' }
+      })
+      : null;
+
     const trabajador = await prisma.trabajador.create({
       data: {
         ci: cleanCi,
         codigo_qr: cleanQr,
-        nombres: String(nombres).trim(),
-        apellidos: String(apellidos).trim(),
-        cliente_id: Number(cliente_id),
-        estado: estado === 'Inactivo' ? 'Inactivo' : 'Activo'
+        nombres: String(nombres || fullName.split(' ')[0] || fullName).trim(),
+        apellidos: String(apellidos || fullName.split(' ').slice(1).join(' ') || '').trim(),
+        nombre: fullName,
+        cliente_empresa: String(cliente_empresa || '').trim(),
+        cliente_id: clienteId,
+        activo: estado !== 'Inactivo',
+        estado: estado === 'Inactivo' ? 'Inactivo' : 'Activo',
+        usuarioId: user?.id || null
       },
       include: { cliente: true }
     });
@@ -83,17 +106,18 @@ export const createTrabajador = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateTrabajador = async (req: AuthRequest, res: Response) => {
-  if (req.user?.rol !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
+  if (normalizeRole(req.user?.rol) !== 'GERENTE') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
 
   const id = Number(req.params.id);
-  const { ci, codigo_qr, nombres, apellidos, cliente_id, estado } = req.body;
+  const { ci, codigo_qr, nombres, apellidos, nombre, cliente_empresa, cliente_id, estado } = req.body;
   const cleanCi = String(ci || '').trim();
   const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
+  const fullName = String(nombre || `${nombres || ''} ${apellidos || ''}`).trim();
 
   try {
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido' });
-    if (!cleanCi || !nombres || !apellidos || !cliente_id) {
-      return res.status(400).json({ error: 'CI, nombres, apellidos y cliente son obligatorios' });
+    if (!cleanCi || !fullName) {
+      return res.status(400).json({ error: 'CI y nombre son obligatorios' });
     }
 
     const exists = await prisma.trabajador.findFirst({
@@ -107,14 +131,27 @@ export const updateTrabajador = async (req: AuthRequest, res: Response) => {
     });
     if (exists) return res.status(400).json({ error: 'Trabajador ya registrado' });
 
+    let clienteId = Number(cliente_id);
+    if (!clienteId) {
+      const cliente = await prisma.cliente.upsert({
+        where: { razon_social: String(cliente_empresa || 'Empresa cliente') },
+        update: { estado: 'Activo' },
+        create: { razon_social: String(cliente_empresa || 'Empresa cliente'), estado: 'Activo' }
+      });
+      clienteId = cliente.id;
+    }
+
     const trabajador = await prisma.trabajador.update({
       where: { id },
       data: {
         ci: cleanCi,
         codigo_qr: cleanQr,
-        nombres: String(nombres).trim(),
-        apellidos: String(apellidos).trim(),
-        cliente_id: Number(cliente_id),
+        nombres: String(nombres || fullName.split(' ')[0] || fullName).trim(),
+        apellidos: String(apellidos || fullName.split(' ').slice(1).join(' ') || '').trim(),
+        nombre: fullName,
+        cliente_empresa: String(cliente_empresa || '').trim(),
+        cliente_id: clienteId,
+        activo: estado !== 'Inactivo',
         estado: estado === 'Inactivo' ? 'Inactivo' : 'Activo'
       },
       include: { cliente: true }
@@ -127,7 +164,7 @@ export const updateTrabajador = async (req: AuthRequest, res: Response) => {
 };
 
 export const getClientes = async (req: AuthRequest, res: Response) => {
-  if (req.user?.rol !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
+  if (normalizeRole(req.user?.rol) !== 'GERENTE') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
 
   try {
     const clientes = await prisma.cliente.findMany({

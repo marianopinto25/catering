@@ -38,6 +38,8 @@ const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const ConsumosController = __importStar(require("./controller"));
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
+router.get('/mio', ConsumosController.getMiConsumo);
+router.post('/mio', ConsumosController.createMiConsumo);
 router.get('/', ConsumosController.getConsumos);
 router.post('/', ConsumosController.createConsumo);
 router.post('/:id/firma', ConsumosController.saveFirma);

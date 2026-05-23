@@ -38,6 +38,7 @@ const ComprasController = __importStar(require("./controller"));
 const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticateToken);
+router.use((0, auth_middleware_1.requireRoles)(['GERENTE']));
 router.post('/', ComprasController.registrarCompra);
 router.post('/generar-desde-sugerencia', ComprasController.generarComprasDesdeSugerencia);
 router.get('/', ComprasController.getCompras);

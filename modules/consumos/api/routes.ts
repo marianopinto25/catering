@@ -6,6 +6,8 @@ const router = Router();
 
 router.use(authenticateToken);
 
+router.get('/mio', ConsumosController.getMiConsumo);
+router.post('/mio', ConsumosController.createMiConsumo);
 router.get('/', ConsumosController.getConsumos);
 router.post('/', ConsumosController.createConsumo);
 router.post('/:id/firma', ConsumosController.saveFirma);

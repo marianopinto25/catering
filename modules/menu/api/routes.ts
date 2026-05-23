@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../../core/api/auth.middleware';
+import { authenticateToken, requireRoles } from '../../../core/api/auth.middleware';
 import * as MenuController from './controller';
 
 export const menusRouter = Router();
@@ -7,6 +7,8 @@ export const platosRouter = Router();
 
 menusRouter.use(authenticateToken);
 platosRouter.use(authenticateToken);
+menusRouter.use(requireRoles(['GERENTE', 'CHEF']));
+platosRouter.use(requireRoles(['GERENTE', 'CHEF']));
 
 menusRouter.get('/', MenuController.getMenus);
 menusRouter.post('/', MenuController.createMenu);
