@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getClientes = exports.updateTrabajador = exports.createTrabajador = exports.getTrabajadores = void 0;
+exports.getClientes = exports.createCuentaTrabajador = exports.updateTrabajador = exports.createTrabajador = exports.getTrabajadores = void 0;
 const prisma_1 = require("../../../core/api/prisma");
 const auth_middleware_1 = require("../../../core/api/auth.middleware");
 const canReadTrabajadores = (rol) => (0, auth_middleware_1.normalizeRole)(rol) === 'GERENTE';
@@ -20,7 +20,7 @@ const getTrabajadores = async (req, res) => {
                         ...(qr ? [{ codigo_qr: qr }] : [])
                     ]
                 },
-                include: { cliente: true }
+                include: { cliente: true, usuario: { select: { id: true, email: true, rol: true, nombre: true } } }
             });
             if (!trabajador) {
                 return res.status(404).json({ error: 'Trabajador no registrado', accion: 'registrar_trabajador' });
@@ -29,7 +29,7 @@ const getTrabajadores = async (req, res) => {
         }
         const trabajadores = await prisma_1.prisma.trabajador.findMany({
             orderBy: [{ apellidos: 'asc' }, { nombres: 'asc' }],
-            include: { cliente: true }
+            include: { cliente: true, usuario: { select: { id: true, email: true, rol: true, nombre: true } } }
         });
         res.json(trabajadores);
     }
@@ -41,7 +41,7 @@ exports.getTrabajadores = getTrabajadores;
 const createTrabajador = async (req, res) => {
     if ((0, auth_middleware_1.normalizeRole)(req.user?.rol) !== 'GERENTE')
         return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
-    const { ci, codigo_qr, nombres, apellidos, nombre, cliente_empresa, cliente_id, estado, crear_usuario, email, password } = req.body;
+    const { ci, codigo_qr, nombres, apellidos, nombre, cliente_empresa, cliente_id, estado } = req.body;
     const cleanCi = String(ci || '').trim();
     const cleanQr = String(codigo_qr || '').trim() || buildQrCode(cleanCi);
     const fullName = String(nombre || `${nombres || ''} ${apellidos || ''}`).trim();
@@ -68,13 +68,6 @@ const createTrabajador = async (req, res) => {
             });
             clienteId = cliente.id;
         }
-        const user = crear_usuario && email
-            ? await prisma_1.prisma.usuario.upsert({
-                where: { email: String(email).trim() },
-                update: { nombre: fullName, rol: 'TRABAJADOR', password_hash: password || '123456' },
-                create: { email: String(email).trim(), nombre: fullName, rol: 'TRABAJADOR', password_hash: password || '123456' }
-            })
-            : null;
         const trabajador = await prisma_1.prisma.trabajador.create({
             data: {
                 ci: cleanCi,
@@ -85,10 +78,9 @@ const createTrabajador = async (req, res) => {
                 cliente_empresa: String(cliente_empresa || '').trim(),
                 cliente_id: clienteId,
                 activo: estado !== 'Inactivo',
-                estado: estado === 'Inactivo' ? 'Inactivo' : 'Activo',
-                usuarioId: user?.id || null
+                estado: estado === 'Inactivo' ? 'Inactivo' : 'Activo'
             },
-            include: { cliente: true }
+            include: { cliente: true, usuario: { select: { id: true, email: true, rol: true, nombre: true } } }
         });
         res.status(201).json(trabajador);
     }
@@ -153,6 +145,50 @@ const updateTrabajador = async (req, res) => {
     }
 };
 exports.updateTrabajador = updateTrabajador;
+const createCuentaTrabajador = async (req, res) => {
+    if ((0, auth_middleware_1.normalizeRole)(req.user?.rol) !== 'GERENTE')
+        return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });
+    const id = Number(req.params.id);
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '123456').trim();
+    try {
+        if (!Number.isInteger(id) || id <= 0)
+            return res.status(400).json({ error: 'ID inválido' });
+        if (!email || !email.includes('@'))
+            return res.status(400).json({ error: 'Email válido obligatorio' });
+        if (password.length < 4)
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 4 caracteres' });
+        const trabajador = await prisma_1.prisma.trabajador.findUnique({
+            where: { id },
+            include: { usuario: true }
+        });
+        if (!trabajador)
+            return res.status(404).json({ error: 'Trabajador no encontrado' });
+        if (trabajador.usuarioId)
+            return res.status(409).json({ error: 'El trabajador ya tiene cuenta vinculada' });
+        const nombre = trabajador.nombre || `${trabajador.nombres} ${trabajador.apellidos}`.trim();
+        const usuario = await prisma_1.prisma.usuario.create({
+            data: {
+                email,
+                password_hash: password,
+                rol: 'TRABAJADOR',
+                nombre
+            }
+        });
+        const updated = await prisma_1.prisma.trabajador.update({
+            where: { id },
+            data: { usuarioId: usuario.id },
+            include: { cliente: true, usuario: { select: { id: true, email: true, rol: true, nombre: true } } }
+        });
+        res.status(201).json(updated);
+    }
+    catch (error) {
+        if (error?.code === 'P2002')
+            return res.status(409).json({ error: 'Ya existe un usuario con ese email' });
+        res.status(500).json({ error: 'Error al crear cuenta del trabajador' });
+    }
+};
+exports.createCuentaTrabajador = createCuentaTrabajador;
 const getClientes = async (req, res) => {
     if ((0, auth_middleware_1.normalizeRole)(req.user?.rol) !== 'GERENTE')
         return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Gerente.' });

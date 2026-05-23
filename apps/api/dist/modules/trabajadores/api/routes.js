@@ -41,5 +41,6 @@ router.use(auth_middleware_1.authenticateToken);
 router.get('/clientes', TrabajadoresController.getClientes);
 router.get('/', TrabajadoresController.getTrabajadores);
 router.post('/', TrabajadoresController.createTrabajador);
+router.post('/:id/cuenta', TrabajadoresController.createCuentaTrabajador);
 router.put('/:id', TrabajadoresController.updateTrabajador);
 exports.default = router;

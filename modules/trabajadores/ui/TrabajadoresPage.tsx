@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, QrCode, Save, UserPlus, X } from 'lucide-react';
+import { Copy, KeyRound, QrCode, Save, UserPlus, X } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { useAuth } from '@core/AuthContext';
 
@@ -16,6 +16,7 @@ interface Trabajador {
   estado?: string;
   cliente?: { razon_social: string };
   usuarioId?: number | null;
+  usuario?: { id: number; email: string; rol: string; nombre: string } | null;
 }
 
 const emptyForm = {
@@ -24,8 +25,10 @@ const emptyForm = {
   nombre: '',
   cliente_empresa: '',
   codigo_qr: '',
-  activo: true,
-  crear_usuario: false,
+  activo: true
+};
+
+const emptyCuentaForm = {
   email: '',
   password: '123456'
 };
@@ -39,6 +42,8 @@ const TrabajadoresPage: React.FC = () => {
   const [trabajadores, setTrabajadores] = useState<Trabajador[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [qrTrabajador, setQrTrabajador] = useState<Trabajador | null>(null);
+  const [cuentaTrabajador, setCuentaTrabajador] = useState<Trabajador | null>(null);
+  const [cuentaForm, setCuentaForm] = useState(emptyCuentaForm);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,10 +72,7 @@ const TrabajadoresPage: React.FC = () => {
       nombre: trabajadorNombre(trabajador),
       cliente_empresa: trabajador.cliente_empresa || trabajador.cliente?.razon_social || '',
       codigo_qr: trabajador.codigo_qr || '',
-      activo: trabajador.activo ?? trabajador.estado !== 'Inactivo',
-      crear_usuario: false,
-      email: '',
-      password: '123456'
+      activo: trabajador.activo ?? trabajador.estado !== 'Inactivo'
     });
     setMessage('');
     setError('');
@@ -93,16 +95,48 @@ const TrabajadoresPage: React.FC = () => {
           cliente_empresa: form.cliente_empresa,
           codigo_qr: form.codigo_qr || undefined,
           activo: form.activo,
-          estado: form.activo ? 'Activo' : 'Inactivo',
-          crear_usuario: form.crear_usuario,
-          email: form.email || undefined,
-          password: form.password || undefined
+          estado: form.activo ? 'Activo' : 'Inactivo'
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo guardar trabajador');
       setForm(emptyForm);
       setMessage(isEditing ? 'Trabajador actualizado' : 'Trabajador registrado');
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openCuenta = (trabajador: Trabajador) => {
+    setCuentaTrabajador(trabajador);
+    setCuentaForm({
+      email: trabajador.usuario?.email || '',
+      password: '123456'
+    });
+    setMessage('');
+    setError('');
+  };
+
+  const crearCuenta = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!cuentaTrabajador) return;
+    setLoading(true);
+    setMessage('');
+    setError('');
+    try {
+      const res = await fetch(`/api/trabajadores/${cuentaTrabajador.id}/cuenta`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(cuentaForm)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo crear la cuenta');
+      setCuentaTrabajador(null);
+      setCuentaForm(emptyCuentaForm);
+      setMessage(`Cuenta creada para ${trabajadorNombre(data)}`);
       await loadData();
     } catch (err: any) {
       setError(err.message);
@@ -146,26 +180,6 @@ const TrabajadoresPage: React.FC = () => {
               <input type="checkbox" checked={form.activo} onChange={e => setForm({ ...form, activo: e.target.checked })} />
               Activo
             </label>
-            {!form.id && (
-              <>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem', fontWeight: 800 }}>
-                  <input type="checkbox" checked={form.crear_usuario} onChange={e => setForm({ ...form, crear_usuario: e.target.checked })} />
-                  Crear cuenta TRABAJADOR
-                </label>
-                {form.crear_usuario && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '0.75rem' }}>
-                    <div className="form-group">
-                      <label className="form-label">Email</label>
-                      <input className="input-field" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required={form.crear_usuario} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Password</label>
-                      <input className="input-field" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required={form.crear_usuario} />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
             {message && <p style={{ color: 'var(--success-color)', fontWeight: 800 }}>{message}</p>}
             {error && <p className="error-text">{error}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -189,6 +203,7 @@ const TrabajadoresPage: React.FC = () => {
                   <th style={{ padding: '0.75rem' }}>CI</th>
                   <th style={{ padding: '0.75rem' }}>Trabajador</th>
                   <th style={{ padding: '0.75rem' }}>Empresa</th>
+                  <th style={{ padding: '0.75rem' }}>Cuenta</th>
                   <th style={{ padding: '0.75rem' }}>Estado</th>
                   <th style={{ padding: '0.75rem' }}></th>
                 </tr>
@@ -199,11 +214,15 @@ const TrabajadoresPage: React.FC = () => {
                     <td style={{ padding: '0.75rem', fontWeight: 800 }}>{trabajador.ci}</td>
                     <td style={{ padding: '0.75rem' }}>{trabajadorNombre(trabajador)}</td>
                     <td style={{ padding: '0.75rem' }}>{trabajador.cliente_empresa || trabajador.cliente?.razon_social || '-'}</td>
+                    <td style={{ padding: '0.75rem' }}>{trabajador.usuario?.email || 'Sin cuenta'}</td>
                     <td style={{ padding: '0.75rem' }}>{trabajador.activo ?? trabajador.estado !== 'Inactivo' ? 'Activo' : 'Inactivo'}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <button type="button" className="btn-secondary" onClick={() => setQrTrabajador(trabajador)} disabled={!trabajador.codigo_qr}>
                           <QrCode size={15} /> Ver QR
+                        </button>
+                        <button type="button" className="btn-secondary" onClick={() => openCuenta(trabajador)} disabled={Boolean(trabajador.usuarioId)}>
+                          <KeyRound size={15} /> Cuenta
                         </button>
                         <button type="button" className="btn-secondary" onClick={() => edit(trabajador)}>
                           <UserPlus size={15} /> Editar
@@ -240,6 +259,45 @@ const TrabajadoresPage: React.FC = () => {
               <Copy size={16} /> Copiar código
             </button>
           </div>
+        </div>
+      )}
+
+      {cuentaTrabajador && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'grid', placeItems: 'center', zIndex: 300 }}>
+          <form onSubmit={crearCuenta} className="card" style={{ width: 'min(440px, calc(100vw - 2rem))', display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+              <div>
+                <h3>Crear cuenta</h3>
+                <p style={{ color: 'var(--text-muted)' }}>{trabajadorNombre(cuentaTrabajador)} · rol TRABAJADOR</p>
+              </div>
+              <button className="btn-secondary" type="button" onClick={() => setCuentaTrabajador(null)} aria-label="Cerrar">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                className="input-field"
+                type="email"
+                value={cuentaForm.email}
+                onChange={e => setCuentaForm({ ...cuentaForm, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                className="input-field"
+                value={cuentaForm.password}
+                onChange={e => setCuentaForm({ ...cuentaForm, password: e.target.value })}
+                required
+                minLength={4}
+              />
+            </div>
+            <button className="btn-primary" type="submit" disabled={loading}>
+              <KeyRound size={16} /> {loading ? 'Creando...' : 'Crear cuenta'}
+            </button>
+          </form>
         </div>
       )}
     </motion.div>

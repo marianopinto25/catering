@@ -73,7 +73,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
       borderRight: '1px solid var(--border-color)',
       boxShadow: '4px 0 10px rgba(0,0,0,0.02)',
       zIndex: 100,
-      transition: 'width 0.2s ease'
+      transition: 'width 0.2s ease',
+      overflowX: 'hidden',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch'
     }}>
       <div style={{ padding: collapsed ? '1.25rem 0.75rem' : '2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'grid', gap: '0.9rem' }}>
         <button
@@ -112,7 +115,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
         )}
       </div>
 
-      <nav style={{ flex: 1, padding: collapsed ? '1rem 0.5rem' : '1.5rem 0.75rem' }}>
+      <nav style={{
+        flex: 1,
+        minHeight: 0,
+        padding: collapsed ? '1rem 0.5rem' : '1.5rem 0.75rem',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
