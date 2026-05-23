@@ -15,6 +15,7 @@ import { menusRouter, platosRouter } from '../../modules/menu/api/routes';
 import trabajadoresRouter from '../../modules/trabajadores/api/routes';
 import consumosRouter from '../../modules/consumos/api/routes';
 import reportesRouter from '../../modules/reportes/api/routes';
+import produccionRouter from '../../modules/produccion/api/routes';
 
 export const activeModules: Array<{ path: string; router: Router }> = [
   { path: '/api/auth',        router: authRouter },
@@ -29,4 +30,5 @@ export const activeModules: Array<{ path: string; router: Router }> = [
   { path: '/api/trabajadores', router: trabajadoresRouter },
   { path: '/api/consumos',    router: consumosRouter },
   { path: '/api/reportes',    router: reportesRouter },
+  { path: '/api/produccion',  router: produccionRouter },
 ];

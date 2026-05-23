@@ -21,6 +21,7 @@ model Usuario {
   consumos_registrados Consumo[] @relation("ConsumoRegistradoPor")
   consumos_autorizados Consumo[] @relation("ConsumoAutorizadoPor")
   reportes_validados   ReporteValidacion[] @relation("ReporteValidadoPor")
+  producciones         Produccion[]
 }
 
 model Proveedor {
@@ -52,6 +53,7 @@ model Insumo {
   solicitudes     SolicitudInsumo[]
   recetas         PlatoInsumo[]
   proveedores     ProveedorInsumo[]
+  produccion_detalles ProduccionDetalle[]
 
   @@unique([nombre, marca])
 }
@@ -98,6 +100,7 @@ model Inventario {
   cantidad_actual  Float
   estado           String   @default("Disponible") // Disponible, Vencido, Dañado
   movimientos      MovimientoInventario[]
+  produccion_detalles ProduccionDetalle[]
 }
 
 model MovimientoInventario {
@@ -112,6 +115,8 @@ model MovimientoInventario {
   motivo           String?  // Compra, Ajuste, Vencimiento, Daño, etc.
   usuario_id       Int
   usuario          Usuario  @relation(fields: [usuario_id], references: [id])
+  produccion_detalle_id Int?
+  produccion_detalle    ProduccionDetalle? @relation(fields: [produccion_detalle_id], references: [id])
 }
 
 model SolicitudInsumo {
@@ -134,6 +139,7 @@ model Plato {
   receta      PlatoInsumo[]
   receta_pasos PlatoRecetaPasos?
   menu_items  MenuItem[]
+  producciones Produccion[]
 }
 
 model PlatoRecetaPasos {
@@ -155,6 +161,7 @@ model PlatoInsumo {
   insumo                Insumo @relation(fields: [insumo_id], references: [id])
   cantidad_por_porcion  Float
   unidad_medida         String
+  produccion_detalles   ProduccionDetalle[]
 
   @@unique([plato_id, insumo_id])
 }
@@ -270,4 +277,35 @@ model Feedback {
   consumo    Consumo @relation(fields: [consumo_id], references: [id])
   puntuacion Int
   comentario String?
+}
+
+model Produccion {
+  id              Int      @id @default(autoincrement())
+  plato_id        Int
+  plato           Plato    @relation(fields: [plato_id], references: [id])
+  porciones       Int
+  fecha           DateTime
+  turno           String?
+  observacion     String?
+  producido_por_id Int
+  producido_por   Usuario @relation(fields: [producido_por_id], references: [id])
+  created_at      DateTime @default(now())
+  detalles        ProduccionDetalle[]
+}
+
+model ProduccionDetalle {
+  id                         Int      @id @default(autoincrement())
+  produccion_id              Int
+  produccion                 Produccion @relation(fields: [produccion_id], references: [id])
+  plato_insumo_id            Int
+  plato_insumo               PlatoInsumo @relation(fields: [plato_insumo_id], references: [id])
+  insumo_id                  Int
+  insumo                     Insumo   @relation(fields: [insumo_id], references: [id])
+  inventario_id              Int
+  inventario                 Inventario @relation(fields: [inventario_id], references: [id])
+  cantidad                   Float
+  unidad_medida              String
+  lote_snapshot              String?
+  fecha_vencimiento_snapshot DateTime?
+  movimientos                MovimientoInventario[]
 }
