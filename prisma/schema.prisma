@@ -18,6 +18,9 @@ model Usuario {
   nombre        String
   movimientos   MovimientoInventario[]
   solicitudes   SolicitudInsumo[]
+  consumos_registrados Consumo[] @relation("ConsumoRegistradoPor")
+  consumos_autorizados Consumo[] @relation("ConsumoAutorizadoPor")
+  reportes_validados   ReporteValidacion[] @relation("ReporteValidadoPor")
 }
 
 model Proveedor {
@@ -195,4 +198,76 @@ model VidaUtilIaCache {
 
   @@unique([insumo_id, ambiente, variante])
   @@index([insumo_id, ambiente])
+}
+
+model Cliente {
+  id           Int      @id @default(autoincrement())
+  razon_social String   @unique
+  estado       String   @default("Activo")
+  trabajadores Trabajador[]
+  validaciones ReporteValidacion[]
+}
+
+model Trabajador {
+  id         Int      @id @default(autoincrement())
+  cliente_id Int
+  cliente    Cliente @relation(fields: [cliente_id], references: [id])
+  ci          String  @unique
+  codigo_qr  String? @unique
+  nombres    String
+  apellidos  String
+  estado     String  @default("Activo")
+  consumos   Consumo[]
+}
+
+model Consumo {
+  id                     Int       @id @default(autoincrement())
+  trabajador_id          Int
+  trabajador             Trabajador @relation(fields: [trabajador_id], references: [id])
+  fecha                  DateTime
+  turno                  String
+  metodo_identificacion  String
+  registrado_por_id      Int
+  registrado_por         Usuario   @relation("ConsumoRegistradoPor", fields: [registrado_por_id], references: [id])
+  registrado_en          DateTime  @default(now())
+  doble_racion           Boolean   @default(false)
+  autorizado_por_id      Int?
+  autorizado_por         Usuario?  @relation("ConsumoAutorizadoPor", fields: [autorizado_por_id], references: [id])
+  firma                  ConsumoFirma?
+  feedback               Feedback?
+
+  @@unique([trabajador_id, fecha, turno])
+  @@index([fecha, turno])
+}
+
+model ConsumoFirma {
+  id           Int      @id @default(autoincrement())
+  consumo_id   Int      @unique
+  consumo      Consumo  @relation(fields: [consumo_id], references: [id])
+  firma_base64 String
+  firmado_en   DateTime @default(now())
+}
+
+model ReporteValidacion {
+  id           Int      @id @default(autoincrement())
+  fecha        DateTime
+  turno        String
+  cliente_id   Int
+  cliente      Cliente  @relation(fields: [cliente_id], references: [id])
+  validado_por_id Int
+  validado_por Usuario  @relation("ReporteValidadoPor", fields: [validado_por_id], references: [id])
+  validado_en  DateTime @default(now())
+  firma_base64 String
+  estado       String   @default("Validado")
+
+  @@unique([cliente_id, fecha, turno])
+  @@index([fecha, turno])
+}
+
+model Feedback {
+  id         Int     @id @default(autoincrement())
+  consumo_id Int    @unique
+  consumo    Consumo @relation(fields: [consumo_id], references: [id])
+  puntuacion Int
+  comentario String?
 }

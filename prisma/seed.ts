@@ -14,6 +14,75 @@ async function main() {
     },
   });
 
+  const clienteUser = await prisma.usuario.upsert({
+    where: { email: 'cliente@catering.com' },
+    update: {},
+    create: {
+      email: 'cliente@catering.com',
+      password_hash: '123456',
+      nombre: 'Cliente Obra',
+      rol: 'Cliente',
+    },
+  });
+
+  const almacen = await prisma.usuario.upsert({
+    where: { email: 'almacen@catering.com' },
+    update: {},
+    create: {
+      email: 'almacen@catering.com',
+      password_hash: '123456',
+      nombre: 'Responsable Almacén',
+      rol: 'Almacen',
+    },
+  });
+
+  const cliente = await prisma.cliente.upsert({
+    where: { razon_social: 'Obra Central S.A.' },
+    update: { estado: 'Activo' },
+    create: {
+      razon_social: 'Obra Central S.A.',
+      estado: 'Activo',
+    },
+  });
+
+  await prisma.trabajador.upsert({
+    where: { ci: '1234567' },
+    update: {
+      cliente_id: cliente.id,
+      codigo_qr: 'QR-1234567',
+      nombres: 'Juan',
+      apellidos: 'Perez',
+      estado: 'Activo',
+    },
+    create: {
+      cliente_id: cliente.id,
+      ci: '1234567',
+      codigo_qr: 'QR-1234567',
+      nombres: 'Juan',
+      apellidos: 'Perez',
+      estado: 'Activo',
+    },
+  });
+
+  await prisma.trabajador.upsert({
+    where: { ci: '7654321' },
+    update: {
+      cliente_id: cliente.id,
+      codigo_qr: 'QR-7654321',
+      nombres: 'Maria',
+      apellidos: 'Rojas',
+      estado: 'Activo',
+    },
+    create: {
+      cliente_id: cliente.id,
+      ci: '7654321',
+      codigo_qr: 'QR-7654321',
+      nombres: 'Maria',
+      apellidos: 'Rojas',
+      estado: 'Activo',
+    },
+  });
+
   const proveedor = await prisma.proveedor.upsert({
     where: { nit_rut: '12345678-9' },
     update: {
@@ -191,7 +260,7 @@ async function main() {
     },
   });
 
-  console.log('Seed ejecutado correctamente:', { gerente, proveedor, plato, desayuno, cena, menu });
+  console.log('Seed ejecutado correctamente:', { gerente, clienteUser, almacen, cliente, proveedor, plato, desayuno, cena, menu });
 }
 
 main()

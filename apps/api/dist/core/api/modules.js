@@ -12,6 +12,9 @@ const routes_5 = __importDefault(require("../../modules/inventario/api/routes"))
 const routes_6 = __importDefault(require("../../modules/alertas/api/routes"));
 const routes_7 = __importDefault(require("../../modules/vida-util/api/routes"));
 const routes_8 = require("../../modules/menu/api/routes");
+const routes_9 = __importDefault(require("../../modules/trabajadores/api/routes"));
+const routes_10 = __importDefault(require("../../modules/consumos/api/routes"));
+const routes_11 = __importDefault(require("../../modules/reportes/api/routes"));
 exports.activeModules = [
     { path: '/api/auth', router: routes_1.default },
     { path: '/api/proveedores', router: routes_2.default },
@@ -22,4 +25,7 @@ exports.activeModules = [
     { path: '/api/alertas', router: routes_6.default },
     { path: '/api/menus', router: routes_8.menusRouter },
     { path: '/api/platos', router: routes_8.platosRouter },
+    { path: '/api/trabajadores', router: routes_9.default },
+    { path: '/api/consumos', router: routes_10.default },
+    { path: '/api/reportes', router: routes_11.default },
 ];
