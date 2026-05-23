@@ -129,6 +129,16 @@ Endpoints principales bajo prefijo actual `/api/`.
     *   Si el plato no existe, se crea automáticamente sin receta para completarla después.
 *   **POST `/cocina/retiros`** - Solicitud de despacho de almacén a cocina.
 *   **POST `/cocina/cambios`** - Registrar reporte de última hora sobre insumos.
+*   **GET `/produccion`** - Lista producciones recientes con plato, porciones y detalle de lotes usados.
+*   **POST `/produccion`** - Registrar producción de un plato y descontar inventario con FEFO.
+    *   *Roles:* `Gerente`, `Cocinero`, `Almacen`.
+    *   *Req Sprint 3.2:* `{ "plato_id": 1, "porciones": 120, "fecha": "2026-07-02", "turno": "Almuerzo", "observacion": "Servicio obra" }`
+    *   *Validaciones:* plato activo con receta; porciones > 0; stock suficiente por insumo antes de descontar; no hay descuentos parciales si falta stock.
+    *   *Descuento:* FEFO por `fecha_vencimiento asc`, luego `id asc`.
+    *   *Kardex:* cada lote descontado genera `MovimientoInventario` tipo `Salida`, motivo `PRODUCCION_FEFO`, enlazado a `ProduccionDetalle`.
+    *   *Res `201 Created`:* producción con `detalles` por lote usado.
+    *   *Res `409 Conflict`:* `{ "error": "Stock insuficiente para registrar producción", "faltantes": [{ "insumo_id": 1, "nombre": "Arroz", "requerido": 10, "disponible": 4, "faltante": 6 }] }`
+*   **GET `/produccion/kardex?insumo_id=1`** - Consulta movimientos de inventario recientes, opcionalmente filtrados por insumo.
 
 ## 4. Consumo (Comedor) - Sprint 3.1 Planning
 Todos los endpoints usan JWT. El input QR es manual por ahora; no se planifica cámara ni OCR en este sprint. Las firmas se capturan dentro del software con canvas y se guardan como base64.

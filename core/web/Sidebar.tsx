@@ -14,7 +14,8 @@ import {
   Menu,
   BadgeCheck,
   Users,
-  FileCheck2
+  FileCheck2,
+  ChefHat
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
     { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
     { to: '/menu/recetas', icon: <BookOpenText size={20} />, label: 'Recetas' },
+    { to: '/produccion', icon: <ChefHat size={20} />, label: 'Producción' },
     { to: '/comedor/consumo', icon: <BadgeCheck size={20} />, label: 'Consumo' },
     ...(user?.rol === 'Gerente' ? [{ to: '/comedor/trabajadores', icon: <Users size={20} />, label: 'Trabajadores' }] : []),
     { to: '/reportes/diario', icon: <FileCheck2 size={20} />, label: 'Reporte diario' },

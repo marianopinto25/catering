@@ -82,6 +82,13 @@
 *   `GET /menu/platos` -> Gestión rápida de catálogo de platos y receta mínima.
 *   `GET /menu/calendario` -> Alias futuro o vista alternativa en formato calendario por día; no es prioridad Sprint 4.
 *   `GET /cocina/actual` -> Resumen de qué preparar hoy especial para el usuario "Cocinero". Botones para "Retirar Insumos" y "Reportar Incidencias".
+*   `GET /produccion` -> Registro de producción con descuento FEFO y Kardex.
+    *   Roles: `Gerente`, `Cocinero`, `Almacen`.
+    *   Panel de captura: plato, porciones, fecha, turno y observación.
+    *   Panel de receta: muestra insumos requeridos para las porciones antes de registrar.
+    *   Si falta stock, muestra bloque de faltantes con requerido, disponible y faltante por insumo.
+    *   Historial: lista producciones recientes y los lotes usados por FEFO.
+    *   Kardex: tabla de movimientos recientes, incluyendo `Salida` por producción.
 
 ### Wireframe textual Sprint 4
 ```text
