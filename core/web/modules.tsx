@@ -19,6 +19,7 @@ import RecetasPage from '../../modules/menu/ui/RecetasPage';
 import ConsumoPage from '../../modules/consumos/ui/ConsumoPage';
 import MiConsumoPage from '../../modules/consumos/ui/MiConsumoPage';
 import ConsumosDiaPage from '../../modules/consumos/ui/ConsumosDiaPage';
+import QrConsumoDiaPage from '../../modules/consumos/ui/QrConsumoDiaPage';
 import TrabajadoresPage from '../../modules/trabajadores/ui/TrabajadoresPage';
 import ReporteDiarioPage from '../../modules/reportes/ui/ReporteDiarioPage';
 import ProduccionPage from '../../modules/produccion/ui/ProduccionPage';
@@ -62,6 +63,7 @@ export const protectedRoutes: AppRouteObject[] = [
   { path: '/trabajadores',            element: <TrabajadoresPage />, roles: ['GERENTE'] },
   { path: '/mi-consumo',              element: <MiConsumoPage />, roles: ['TRABAJADOR'] },
   { path: '/consumos',                element: <ConsumosDiaPage />, roles: ['GERENTE'] },
+  { path: '/consumos/qr-dia',          element: <QrConsumoDiaPage />, roles: ['GERENTE'] },
   // --- módulo/reportes ---
   { path: '/reportes/diario',          element: <ReporteDiarioPage />, roles: ['GERENTE'] },
   // --- módulo/producción ---

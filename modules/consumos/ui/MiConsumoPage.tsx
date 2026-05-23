@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@core/AuthContext';
@@ -18,8 +19,10 @@ const turnos = ['Desayuno', 'Almuerzo', 'Cena'];
 
 const MiConsumoPage: React.FC = () => {
   const { token } = useAuth();
+  const [searchParams] = useSearchParams();
   const [fecha] = useState(today());
-  const [turno, setTurno] = useState('Almuerzo');
+  const initialTurno = searchParams.get('turno') || 'Almuerzo';
+  const [turno, setTurno] = useState(turnos.includes(initialTurno) ? initialTurno : 'Almuerzo');
   const [metodo, setMetodo] = useState<'SESION' | 'QR'>('SESION');
   const [codigoQr, setCodigoQr] = useState('');
   const [consumo, setConsumo] = useState<Consumo | null>(null);

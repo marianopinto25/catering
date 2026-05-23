@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@core/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -9,6 +9,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const homeForRole = (role?: string) => {
     const normalized = role?.toUpperCase();
@@ -34,7 +35,8 @@ const Login: React.FC = () => {
 
       const data = await response.json();
       login(data.token, data.user);
-      navigate(homeForRole(data.user?.rol));
+      const redirect = searchParams.get('redirect');
+      navigate(redirect?.startsWith('/') ? redirect : homeForRole(data.user?.rol));
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
     }

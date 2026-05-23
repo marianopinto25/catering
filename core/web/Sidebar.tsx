@@ -14,7 +14,8 @@ import {
   BadgeCheck,
   Users,
   FileCheck2,
-  ChefHat
+  ChefHat,
+  QrCode
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
       { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
       { to: '/alertas', icon: <AlertCircle size={20} />, label: 'Alertas' },
       { to: '/consumos', icon: <FileCheck2 size={20} />, label: 'Consumos del día' },
+      { to: '/consumos/qr-dia', icon: <QrCode size={20} />, label: 'QR del día' },
       { to: '/trabajadores', icon: <Users size={20} />, label: 'Trabajadores' },
       { to: '/reportes/diario', icon: <FileCheck2 size={20} />, label: 'Reporte diario' },
     ],

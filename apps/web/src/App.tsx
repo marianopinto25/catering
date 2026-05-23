@@ -63,11 +63,13 @@ const homeForRole = (role?: string | null) => {
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
   const { isAuthenticated, role } = useAuth();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const sidebarWidth = sidebarCollapsed ? 76 : 260;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const redirect = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
   }
 
   if (roles?.length && (!role || !roles.includes(role))) {
