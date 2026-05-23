@@ -31,7 +31,8 @@ const toEstimate = (cache: {
   vida_util_sugerida_dias: cache.vida_util_sugerida_dias,
   razon_corta: cache.razon_corta,
   explicacion: cache.explicacion,
-  accion_sugerida: cache.accion_sugerida
+  accion_sugerida: cache.accion_sugerida,
+  fuente: 'cache'
 });
 
 const saveEstimateInCache = async (
@@ -125,6 +126,8 @@ export const sugerirVidaUtil = async (req: Request, res: Response) => {
     }
 
     const geminiEstimate = await estimateWithCache(insumo, fechaRecepcion, condicionAmbiente);
+    const isGemini = geminiEstimate.fuente === 'gemini';
+    const isCache = geminiEstimate.fuente === 'cache';
 
     return res.json({
       insumo_id: insumo.id,
@@ -134,11 +137,15 @@ export const sugerirVidaUtil = async (req: Request, res: Response) => {
       ambiente_estimado: condicionAmbiente,
       vida_util_sugerida_dias: geminiEstimate.vida_util_sugerida_dias,
       fecha_vencimiento_sugerida: toIsoDate(addDays(fechaRecepcion, geminiEstimate.vida_util_sugerida_dias)),
-      fuente: 'gemini',
+      fuente: geminiEstimate.fuente,
       agente: {
         nombre: `Recomendación de vencimiento para ${insumo.nombre}`,
-        estado: 'Agente IA activo',
-        mensaje: `Leí el insumo "${insumo.nombre}" y estimé el vencimiento con ambiente ${condicionAmbiente}.`
+        estado: isGemini ? 'Agente IA activo' : isCache ? 'Estimación guardada' : 'Estimación automática',
+        mensaje: isGemini
+          ? `Leí el insumo "${insumo.nombre}" y estimé el vencimiento con ambiente ${condicionAmbiente}.`
+          : isCache
+            ? `Usé una recomendación guardada para ${insumo.nombre}.`
+          : `Gemini no está disponible; usé una regla local para ${insumo.nombre}.`
       },
       editable: true,
       requiere_revision: false,

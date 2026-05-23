@@ -50,7 +50,8 @@ const fallbackEstimate = (input) => {
             : isCold
                 ? `${razon} Con ambiente frío o seco se conserva un poco mejor si se almacena correctamente.`
                 : `${razon} Se usa una estimación operativa para cocina y almacén.`,
-        accion_sugerida: cuidado
+        accion_sugerida: cuidado,
+        fuente: 'fallback'
     };
 };
 const extractField = (text, label) => {
@@ -72,7 +73,8 @@ const parseEstimate = (text) => {
         vida_util_sugerida_dias: clampDays(days),
         razon_corta: razon.slice(0, 150),
         explicacion: detalle.slice(0, 280),
-        accion_sugerida: accion.slice(0, 180)
+        accion_sugerida: accion.slice(0, 180),
+        fuente: 'gemini'
     };
 };
 const buildPrompt = (input, compact = false) => [

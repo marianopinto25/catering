@@ -11,6 +11,7 @@ export interface GeminiEstimate {
   razon_corta: string;
   explicacion: string;
   accion_sugerida: string;
+  fuente: 'gemini' | 'fallback' | 'cache';
 }
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -64,7 +65,8 @@ const fallbackEstimate = (input: GeminiEstimateInput): GeminiEstimate => {
       : isCold
         ? `${razon} Con ambiente frío o seco se conserva un poco mejor si se almacena correctamente.`
         : `${razon} Se usa una estimación operativa para cocina y almacén.`,
-    accion_sugerida: cuidado
+    accion_sugerida: cuidado,
+    fuente: 'fallback'
   };
 };
 
@@ -89,7 +91,8 @@ const parseEstimate = (text: string): GeminiEstimate | null => {
     vida_util_sugerida_dias: clampDays(days),
     razon_corta: razon.slice(0, 150),
     explicacion: detalle.slice(0, 280),
-    accion_sugerida: accion.slice(0, 180)
+    accion_sugerida: accion.slice(0, 180),
+    fuente: 'gemini'
   };
 };
 
