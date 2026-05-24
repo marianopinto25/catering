@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Package,
   AlertCircle,
+  BookOpenText,
   Shapes,
   Utensils,
   Menu,
@@ -37,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     GERENTE: [
       { to: '/dashboard', icon: <ClipboardList size={20} />, label: 'Manejo Inv. y Compras' },
       { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
+      { to: '/menu/recetas', icon: <BookOpenText size={20} />, label: 'Recetas' },
       { to: '/proveedores', icon: <Truck size={20} />, label: 'Proveedores' },
       { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
       { to: '/compras', icon: <ShoppingBag size={20} />, label: 'Compras' },
@@ -49,6 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     ],
     CHEF: [
       { to: '/menu', icon: <Utensils size={20} />, label: 'Menú' },
+      { to: '/menu/recetas', icon: <BookOpenText size={20} />, label: 'Recetas' },
       { to: '/produccion', icon: <ChefHat size={20} />, label: 'Producción' },
       { to: '/insumos', icon: <Shapes size={20} />, label: 'Insumos' },
       { to: '/inventario', icon: <Package size={20} />, label: 'Inventario' },
