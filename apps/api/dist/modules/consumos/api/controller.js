@@ -94,6 +94,7 @@ const createMiConsumo = async (req, res) => {
         res.status(201).json({ ...consumo, fecha: fechaTexto, estado_firma: 'Pendiente' });
     }
     catch (error) {
+        console.error('[consumos/mio] Error al registrar mi consumo:', error);
         if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             return res.status(409).json({ error: 'Ya registraste consumo en este turno hoy' });
         }

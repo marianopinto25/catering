@@ -4,7 +4,7 @@
   "description": "Runner Express — catering modular",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon --watch src --watch ../../core --watch ../../modules --watch ../../prisma --ext ts,json --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/apps/api/src/index.js",
     "db:push": "prisma db push --schema=../../prisma/schema.prisma",
