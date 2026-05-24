@@ -360,6 +360,92 @@ a {
   background-color: var(--hover-bg);
 }
 
+.daily-qr-page,
+.mi-consumo-page {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 980px;
+}
+
+.daily-qr-controls,
+.mi-consumo-controls {
+  display: grid;
+  grid-template-columns: 180px 220px 1fr;
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.daily-qr-display {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.daily-qr-box {
+  width: min(100%, 370px);
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.qr-scanner-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.qr-scanner-video {
+  width: 100%;
+  max-height: 360px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: #020617;
+}
+
+.mobile-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .daily-qr-page,
+  .mi-consumo-page {
+    gap: 1rem;
+    max-width: 100%;
+  }
+
+  .daily-qr-controls,
+  .mi-consumo-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-qr-controls .form-group,
+  .mi-consumo-controls .form-group {
+    margin-bottom: 0;
+  }
+
+  .daily-qr-box {
+    padding: 0.85rem;
+  }
+
+  .mobile-action-row > button,
+  .mobile-action-row > label {
+    width: 100%;
+  }
+
+  h2 {
+    font-size: 1.45rem;
+  }
+}
+
 .error-text {
   color: var(--danger-color);
   font-size: 0.85rem;

@@ -64,8 +64,19 @@ const homeForRole = (role?: string | null) => {
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
   const { isAuthenticated, role } = useAuth();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [isNarrow, setIsNarrow] = React.useState(() => window.innerWidth <= 760);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => window.innerWidth <= 760);
   const sidebarWidth = sidebarCollapsed ? 76 : 260;
+
+  React.useEffect(() => {
+    const onResize = () => {
+      const nextIsNarrow = window.innerWidth <= 760;
+      setIsNarrow(nextIsNarrow);
+      if (nextIsNarrow) setSidebarCollapsed(true);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   if (!isAuthenticated) {
     const redirect = `${location.pathname}${location.search}`;
@@ -81,7 +92,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(prev => !prev)} />
       <main style={{
         marginLeft: `${sidebarWidth}px`,
-        padding: '2.5rem',
+        padding: isNarrow ? '1rem' : '2.5rem',
         width: `calc(100% - ${sidebarWidth}px)`,
         minHeight: '100vh',
         background: 'var(--bg-color)',

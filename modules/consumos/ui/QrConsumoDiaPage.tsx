@@ -16,13 +16,13 @@ const QrConsumoDiaPage: React.FC = () => {
   }, [fecha, turno]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: '1.5rem', maxWidth: '980px' }}>
+    <motion.div className="daily-qr-page" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
       <div>
         <h2>QR del día</h2>
         <p style={{ color: 'var(--text-muted)' }}>Muestra este código para que el trabajador lo escanee y registre su consumo del turno.</p>
       </div>
 
-      <section className="card" style={{ display: 'grid', gridTemplateColumns: '180px 220px 1fr', gap: '0.9rem', alignItems: 'end' }}>
+      <section className="card daily-qr-controls">
         <div className="form-group">
           <label className="form-label">Fecha</label>
           <input className="input-field" value={fecha} disabled />
@@ -40,12 +40,12 @@ const QrConsumoDiaPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="card" style={{ display: 'grid', justifyItems: 'center', gap: '1rem', textAlign: 'center' }}>
+      <section className="card daily-qr-display">
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', color: 'var(--text-muted)', fontWeight: 800 }}>
           <MonitorSmartphone size={20} /> {fecha} · {turno}
         </div>
-        <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <QRCode value={consumoUrl} size={320} />
+        <div className="daily-qr-box">
+          <QRCode value={consumoUrl} size={320} style={{ width: '100%', height: 'auto', maxWidth: '320px' }} />
         </div>
         <code style={{ maxWidth: '100%', padding: '0.85rem', borderRadius: '8px', background: 'var(--soft-bg)', wordBreak: 'break-all', textAlign: 'left' }}>
           {consumoUrl}
