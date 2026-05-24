@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Camera, CheckCircle2, ClipboardCheck, ImagePlus, X } from 'lucide-react';
+import jsQR from 'jsqr';
 import { useAuth } from '@core/AuthContext';
 import SignaturePad from './SignaturePad';
 
@@ -17,20 +18,11 @@ interface Consumo {
 const today = () => new Date().toISOString().slice(0, 10);
 const turnos = ['Desayuno', 'Almuerzo', 'Cena'];
 
-type BarcodeResult = { rawValue: string };
-type BarcodeDetectorInstance = { detect: (source: CanvasImageSource | Blob | ImageBitmap) => Promise<BarcodeResult[]> };
-type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorInstance;
-
-declare global {
-  interface Window {
-    BarcodeDetector?: BarcodeDetectorConstructor;
-  }
-}
-
 const MiConsumoPage: React.FC = () => {
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const captureInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanFrameRef = useRef<number | null>(null);
   const [fecha] = useState(today());
@@ -96,17 +88,28 @@ const MiConsumoPage: React.FC = () => {
 
   useEffect(() => () => stopScanner(), []);
 
+  const scanCanvasForQr = (source: HTMLVideoElement | HTMLImageElement | ImageBitmap) => {
+    const width = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
+    const height = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+    if (!width || !height) return '';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return '';
+    ctx.drawImage(source, 0, 0, width, height);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    return jsQR(imageData.data, imageData.width, imageData.height)?.data || '';
+  };
+
   const startScanner = async () => {
     setScannerError('');
     setError('');
 
-    if (!window.BarcodeDetector) {
-      setScannerError('Este navegador no soporta lectura QR dentro de la página. Usa la cámara normal del celular o sube una foto del QR.');
-      return;
-    }
-
     if (!navigator.mediaDevices?.getUserMedia) {
-      setScannerError('La cámara del navegador requiere HTTPS o localhost. Desde IP local puede bloquearse; usa la cámara normal del celular para abrir el QR.');
+      captureInputRef.current?.click();
+      setScannerError('Si la cámara en vivo está bloqueada por HTTP, toma una foto del QR y la app lo lee igual.');
       return;
     }
 
@@ -122,16 +125,15 @@ const MiConsumoPage: React.FC = () => {
         await videoRef.current.play();
       }
 
-      const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-      const scan = async () => {
+      const scan = () => {
         const video = videoRef.current;
         if (!video || video.readyState < 2) {
           scanFrameRef.current = window.requestAnimationFrame(scan);
           return;
         }
-        const codes = await detector.detect(video);
-        if (codes[0]?.rawValue) {
-          applyQrValue(codes[0].rawValue);
+        const code = scanCanvasForQr(video);
+        if (code) {
+          applyQrValue(code);
           stopScanner();
           return;
         }
@@ -140,24 +142,31 @@ const MiConsumoPage: React.FC = () => {
       scanFrameRef.current = window.requestAnimationFrame(scan);
     } catch {
       stopScanner();
-      setScannerError('No se pudo abrir la cámara. Revisa permisos del navegador o usa la cámara normal del celular para escanear el QR.');
+      captureInputRef.current?.click();
+      setScannerError('No se pudo abrir cámara en vivo. Toma una foto del QR y la app lo lee automáticamente.');
     }
   };
 
   const scanImage = async (file?: File) => {
     if (!file) return;
     setScannerError('');
-    if (!window.BarcodeDetector) {
-      setScannerError('Este navegador no puede leer QR desde imagen. Usa la cámara normal del celular para abrir el enlace del QR.');
-      return;
-    }
     try {
-      const bitmap = await createImageBitmap(file);
-      const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-      const codes = await detector.detect(bitmap);
-      bitmap.close();
-      if (!codes[0]?.rawValue) throw new Error('empty');
-      applyQrValue(codes[0].rawValue);
+      const code = await new Promise<string>((resolve, reject) => {
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        image.onload = () => {
+          const result = scanCanvasForQr(image);
+          URL.revokeObjectURL(objectUrl);
+          resolve(result);
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('image'));
+        };
+        image.src = objectUrl;
+      });
+      if (!code) throw new Error('empty');
+      applyQrValue(code);
     } catch {
       setScannerError('No se pudo leer el QR de la imagen. Intenta tomar la foto más cerca y con buena luz.');
     }
@@ -268,11 +277,15 @@ const MiConsumoPage: React.FC = () => {
           <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: consumo ? 'not-allowed' : 'pointer', opacity: consumo ? 0.55 : 1 }}>
             <ImagePlus size={16} /> Foto del QR
             <input
+              ref={captureInputRef}
               type="file"
               accept="image/*"
               capture="environment"
               disabled={Boolean(consumo)}
-              onChange={event => scanImage(event.target.files?.[0])}
+              onChange={event => {
+                scanImage(event.target.files?.[0]);
+                event.currentTarget.value = '';
+              }}
               style={{ display: 'none' }}
             />
           </label>
