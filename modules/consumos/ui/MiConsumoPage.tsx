@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Camera, CheckCircle2, ClipboardCheck, ImagePlus, X } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import jsQR from 'jsqr';
 import { useAuth } from '@core/AuthContext';
 import SignaturePad from './SignaturePad';
@@ -21,10 +22,9 @@ const turnos = ['Desayuno', 'Almuerzo', 'Cena'];
 const MiConsumoPage: React.FC = () => {
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const captureInputRef = useRef<HTMLInputElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanFrameRef = useRef<number | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerElementId = useMemo(() => `qr-reader-${Math.random().toString(36).slice(2)}`, []);
   const [fecha] = useState(today());
   const initialTurno = searchParams.get('turno') || 'Almuerzo';
   const [turno, setTurno] = useState(turnos.includes(initialTurno) ? initialTurno : 'Almuerzo');
@@ -78,72 +78,91 @@ const MiConsumoPage: React.FC = () => {
     setMessage('Código QR leído. Ahora puedes registrar tu consumo.');
   };
 
-  const stopScanner = () => {
-    if (scanFrameRef.current) window.cancelAnimationFrame(scanFrameRef.current);
-    scanFrameRef.current = null;
-    streamRef.current?.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
+  const stopScanner = async () => {
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (scanner) {
+      try {
+        if (scanner.isScanning) await scanner.stop();
+        scanner.clear();
+      } catch {
+        // Scanner can already be stopped when the success callback fires.
+      }
+    }
     setScannerOpen(false);
   };
 
-  useEffect(() => () => stopScanner(), []);
+  useEffect(() => () => {
+    stopScanner();
+  }, []);
 
   const scanCanvasForQr = (source: HTMLVideoElement | HTMLImageElement | ImageBitmap) => {
-    const width = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
-    const height = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+    const width = source instanceof HTMLVideoElement
+      ? source.videoWidth
+      : source instanceof HTMLImageElement
+        ? source.naturalWidth || source.width
+        : source.width;
+    const height = source instanceof HTMLVideoElement
+      ? source.videoHeight
+      : source instanceof HTMLImageElement
+        ? source.naturalHeight || source.height
+        : source.height;
     if (!width || !height) return '';
 
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    canvas.width = Math.max(1, Math.floor(width * scale));
+    canvas.height = Math.max(1, Math.floor(height * scale));
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return '';
-    ctx.drawImage(source, 0, 0, width, height);
-    const imageData = ctx.getImageData(0, 0, width, height);
-    return jsQR(imageData.data, imageData.width, imageData.height)?.data || '';
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' })?.data || '';
   };
 
   const startScanner = async () => {
     setScannerError('');
     setError('');
 
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       captureInputRef.current?.click();
-      setScannerError('Si la cámara en vivo está bloqueada por HTTP, toma una foto del QR y la app lo lee igual.');
+      setScannerError('Para cámara en vivo en celular abre la app por HTTPS. Mientras tanto, toma una foto del QR y la app la lee.');
       return;
     }
 
     try {
       setScannerOpen(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      await new Promise(resolve => window.requestAnimationFrame(resolve));
 
-      const scan = () => {
-        const video = videoRef.current;
-        if (!video || video.readyState < 2) {
-          scanFrameRef.current = window.requestAnimationFrame(scan);
-          return;
-        }
-        const code = scanCanvasForQr(video);
-        if (code) {
-          applyQrValue(code);
+      const scanner = new Html5Qrcode(scannerElementId, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        useBarCodeDetectorIfSupported: false,
+        verbose: false
+      });
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 12,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.78);
+            return { width: size, height: size };
+          },
+          aspectRatio: 1
+        },
+        decodedText => {
+          if (!decodedText) return;
           stopScanner();
-          return;
-        }
-        scanFrameRef.current = window.requestAnimationFrame(scan);
-      };
-      scanFrameRef.current = window.requestAnimationFrame(scan);
+          setScannerError('');
+          applyQrValue(decodedText);
+        },
+        () => undefined
+      );
     } catch {
       stopScanner();
       captureInputRef.current?.click();
-      setScannerError('No se pudo abrir cámara en vivo. Toma una foto del QR y la app lo lee automáticamente.');
+      setScannerError('No se pudo abrir cámara en vivo. En iPhone/Android desde IP local suele requerir HTTPS; toma una foto del QR y la app la lee.');
     }
   };
 
@@ -151,20 +170,39 @@ const MiConsumoPage: React.FC = () => {
     if (!file) return;
     setScannerError('');
     try {
-      const code = await new Promise<string>((resolve, reject) => {
-        const image = new Image();
-        const objectUrl = URL.createObjectURL(file);
-        image.onload = () => {
-          const result = scanCanvasForQr(image);
-          URL.revokeObjectURL(objectUrl);
-          resolve(result);
-        };
-        image.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          reject(new Error('image'));
-        };
-        image.src = objectUrl;
+      const tempId = `qr-file-${Date.now()}`;
+      const temp = document.createElement('div');
+      temp.id = tempId;
+      temp.style.display = 'none';
+      document.body.appendChild(temp);
+      const fileScanner = new Html5Qrcode(tempId, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        useBarCodeDetectorIfSupported: false,
+        verbose: false
       });
+      let code = '';
+      try {
+        code = await fileScanner.scanFile(file, false);
+      } finally {
+        fileScanner.clear();
+        temp.remove();
+      }
+      if (!code) {
+        code = await new Promise<string>((resolve, reject) => {
+          const image = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          image.onload = () => {
+            const result = scanCanvasForQr(image);
+            URL.revokeObjectURL(objectUrl);
+            resolve(result);
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('image'));
+          };
+          image.src = objectUrl;
+        });
+      }
       if (!code) throw new Error('empty');
       applyQrValue(code);
     } catch {
@@ -293,8 +331,8 @@ const MiConsumoPage: React.FC = () => {
 
         {scannerOpen && (
           <div className="qr-scanner-panel">
-            <video ref={videoRef} className="qr-scanner-video" playsInline muted />
-            <button className="btn-secondary" type="button" onClick={stopScanner}>
+            <div id={scannerElementId} className="qr-scanner-video" />
+            <button className="btn-secondary" type="button" onClick={() => stopScanner()}>
               <X size={16} /> Cerrar cámara
             </button>
           </div>
