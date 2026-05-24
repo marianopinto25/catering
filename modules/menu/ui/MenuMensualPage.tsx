@@ -1,40 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@core/AuthContext';
-import { Bot, CalendarDays, ChefHat, FileUp, Plus, Sparkles, Trash2, Utensils } from 'lucide-react';
-
-interface Insumo {
-  id: number;
-  nombre: string;
-  unidad_medida: string;
-}
-
-interface RecetaItem {
-  id: number;
-  insumo_id: number;
-  cantidad_por_porcion: number;
-  unidad_medida: string;
-  insumo: Insumo;
-}
+import { CalendarDays, ChefHat, FileUp, Trash2, Utensils } from 'lucide-react';
 
 interface Plato {
   id: number;
   nombre: string;
   descripcion?: string;
-  receta: RecetaItem[];
-}
-
-interface RecetaSugeridaItem {
-  insumo_id: number;
-  cantidad_por_porcion: number;
-  unidad_medida: string;
-  insumo: Insumo;
-}
-
-interface PlatoSuggestion {
-  descripcion: string;
-  fuente?: string;
-  receta: RecetaSugeridaItem[];
 }
 
 interface MenuItem {
@@ -137,21 +109,11 @@ const MenuMensualPage: React.FC = () => {
   const [semana, setSemana] = useState(1);
   const [menu, setMenu] = useState<MenuMes | null>(null);
   const [platos, setPlatos] = useState<Plato[]>([]);
-  const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [requerimiento, setRequerimiento] = useState<RequerimientoItem[]>([]);
   const [selectedDia, setSelectedDia] = useState('Lunes');
   const [selectedTurno, setSelectedTurno] = useState('Almuerzo');
   const [selectedPlatoId, setSelectedPlatoId] = useState<number | ''>('');
-  const [selectedPlatoDetalleId, setSelectedPlatoDetalleId] = useState<number | null>(null);
   const [porciones, setPorciones] = useState(120);
-  const [nuevoPlato, setNuevoPlato] = useState('');
-  const [descripcionPlato, setDescripcionPlato] = useState('');
-  const [recetaSugerida, setRecetaSugerida] = useState<RecetaSugeridaItem[]>([]);
-  const [sugerenciaStatus, setSugerenciaStatus] = useState('');
-  const [sugerenciaError, setSugerenciaError] = useState('');
-  const [editingRecetaId, setEditingRecetaId] = useState<number | null>(null);
-  const [recetaInsumoId, setRecetaInsumoId] = useState<number | ''>('');
-  const [recetaCantidad, setRecetaCantidad] = useState(0);
   const [importMessage, setImportMessage] = useState('');
 
   const authHeaders = useMemo(() => ({
@@ -162,12 +124,6 @@ const MenuMensualPage: React.FC = () => {
   const itemsSemana = useMemo(() => (
     (menu?.items || []).filter(item => item.semana === semana)
   ), [menu, semana]);
-
-  const platoDetalle = useMemo(() => (
-    platos.find(plato => plato.id === selectedPlatoDetalleId) || itemsSemana[0]?.plato || platos[0] || null
-  ), [platos, selectedPlatoDetalleId, itemsSemana]);
-
-  const sugerenciaEnCurso = sugerenciaStatus === 'Gemini está pensando la receta...';
 
   const menuBySlot = useMemo(() => {
     const map = new Map<string, MenuItem>();
@@ -183,11 +139,6 @@ const MenuMensualPage: React.FC = () => {
       return data as Plato[];
     }
     return platos;
-  };
-
-  const fetchInsumos = async () => {
-    const res = await fetch('/api/insumos', { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setInsumos(await res.json());
   };
 
   const fetchMenu = async () => {
@@ -209,7 +160,6 @@ const MenuMensualPage: React.FC = () => {
 
   useEffect(() => {
     fetchPlatos();
-    fetchInsumos();
   }, [token]);
 
   useEffect(() => {
@@ -226,49 +176,7 @@ const MenuMensualPage: React.FC = () => {
 
   useEffect(() => {
     if (!selectedPlatoId && platos[0]) setSelectedPlatoId(platos[0].id);
-    if (!selectedPlatoDetalleId && platos[0]) setSelectedPlatoDetalleId(platos[0].id);
-    if (!recetaInsumoId && insumos[0]) setRecetaInsumoId(insumos[0].id);
-  }, [platos, insumos, selectedPlatoId, selectedPlatoDetalleId, recetaInsumoId]);
-
-  useEffect(() => {
-    const nombre = nuevoPlato.trim();
-    if (nombre.length < 3) {
-      setSugerenciaStatus('');
-      setSugerenciaError('');
-      setRecetaSugerida([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      try {
-        setSugerenciaStatus('Gemini está pensando la receta...');
-        setSugerenciaError('');
-        const res = await fetch(`/api/platos/sugerir?nombre=${encodeURIComponent(nombre)}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'No se pudo generar la sugerencia con Gemini');
-
-        const suggestion = data as PlatoSuggestion;
-        setDescripcionPlato(suggestion.descripcion || '');
-        setRecetaSugerida(Array.isArray(suggestion.receta) ? suggestion.receta : []);
-        setSugerenciaStatus(suggestion.receta?.length ? 'Gemini preparó una receta base editable.' : 'Gemini respondió sin insumos compatibles del catálogo.');
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          setRecetaSugerida([]);
-          setSugerenciaStatus('');
-          setSugerenciaError(error.message || 'No se pudo generar la sugerencia con Gemini.');
-        }
-      }
-    }, 700);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [nuevoPlato, token]);
+  }, [platos, selectedPlatoId]);
 
   const ensureMenu = async () => {
     if (menu) return menu;
@@ -306,7 +214,6 @@ const MenuMensualPage: React.FC = () => {
     const [year, month] = value.split('-').map(Number);
     setAnio(year);
     setMes(month);
-    setSelectedPlatoDetalleId(null);
   };
 
   const saveMenuSlot = async (targetMenuId: number, item: { semana: number; dia: string; turno: string; plato_id: number; porciones_estimadas: number }) => {
@@ -337,7 +244,6 @@ const MenuMensualPage: React.FC = () => {
       });
       await fetchMenu();
       await fetchRequerimiento(targetMenu.id);
-      setSelectedPlatoDetalleId(Number(selectedPlatoId));
     } catch (error: any) {
       alert(error.message);
     }
@@ -352,96 +258,6 @@ const MenuMensualPage: React.FC = () => {
     if (res.ok) {
       await fetchMenu();
       await fetchRequerimiento(menu.id);
-    }
-  };
-
-  const handleCrearPlato = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!nuevoPlato.trim() || sugerenciaEnCurso) return;
-
-    const res = await fetch('/api/platos', {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({
-        nombre: nuevoPlato.trim(),
-        descripcion: descripcionPlato.trim(),
-        receta: recetaSugerida.map(item => ({
-          insumo_id: item.insumo_id,
-          cantidad_por_porcion: item.cantidad_por_porcion,
-          unidad_medida: item.unidad_medida
-        }))
-      })
-    });
-    if (res.ok) {
-      const created = await res.json();
-      setNuevoPlato('');
-      setDescripcionPlato('');
-      setRecetaSugerida([]);
-      setSugerenciaStatus('');
-      setSugerenciaError('');
-      await fetchPlatos();
-      setSelectedPlatoId(created.id);
-      setSelectedPlatoDetalleId(created.id);
-    } else {
-      const data = await res.json();
-      alert(data.error || 'No se pudo crear el plato');
-    }
-  };
-
-  const handleAgregarReceta = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!platoDetalle || !recetaInsumoId || recetaCantidad <= 0) return;
-
-    const insumo = insumos.find(item => item.id === Number(recetaInsumoId));
-    const res = await fetch(`/api/platos/${platoDetalle.id}/receta`, {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({
-        insumo_id: recetaInsumoId,
-        cantidad_por_porcion: recetaCantidad,
-        unidad_medida: insumo?.unidad_medida || ''
-      })
-    });
-
-    if (res.ok) {
-      setRecetaCantidad(0);
-      await fetchPlatos();
-      if (menu?.id) await fetchRequerimiento(menu.id);
-    }
-  };
-
-  const handleEliminarReceta = async (recetaId: number) => {
-    if (!platoDetalle || !window.confirm('¿Quitar insumo de la receta?')) return;
-    const res = await fetch(`/api/platos/${platoDetalle.id}/receta/${recetaId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) {
-      await fetchPlatos();
-      if (menu?.id) await fetchRequerimiento(menu.id);
-    }
-  };
-
-  const handleActualizarRecetaCantidad = async (item: RecetaItem, cantidad: number) => {
-    if (!platoDetalle || cantidad <= 0) return;
-
-    setEditingRecetaId(item.id);
-    const res = await fetch(`/api/platos/${platoDetalle.id}/receta/${item.id}`, {
-      method: 'PUT',
-      headers: authHeaders,
-      body: JSON.stringify({
-        cantidad_por_porcion: cantidad,
-        unidad_medida: item.unidad_medida
-      })
-    });
-
-    setEditingRecetaId(null);
-    if (res.ok) {
-      await fetchPlatos();
-      if (menu?.id) await fetchRequerimiento(menu.id);
-    } else {
-      const data = await res.json();
-      alert(data.error || 'No se pudo actualizar la cantidad');
     }
   };
 
@@ -501,7 +317,7 @@ const MenuMensualPage: React.FC = () => {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.75rem', margin: 0 }}>
             <Utensils size={26} /> Menú mensual
           </h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.35rem' }}>Planifica desayuno, almuerzo y cena. Cada plato puede tener receta por porción.</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.35rem' }}>Planifica desayuno, almuerzo y cena. Las recetas base se editan desde la pantalla Recetas.</p>
         </div>
         <input
           className="input-field"
@@ -512,7 +328,7 @@ const MenuMensualPage: React.FC = () => {
         />
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '250px minmax(460px, 1.35fr) minmax(380px, 1fr)', gap: '1rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '250px minmax(460px, 1.35fr) minmax(300px, 0.85fr)', gap: '1rem', alignItems: 'start' }}>
         <aside className="card" style={{ padding: '1rem' }}>
           <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CalendarDays size={18} /> {mes}/{anio}
@@ -577,7 +393,6 @@ const MenuMensualPage: React.FC = () => {
                               setSelectedTurno(turno);
                               if (item) {
                                 setSelectedPlatoId(item.plato.id);
-                                setSelectedPlatoDetalleId(item.plato.id);
                                 setPorciones(item.porciones_estimadas);
                               }
                             }}
@@ -637,143 +452,6 @@ const MenuMensualPage: React.FC = () => {
         </section>
 
         <section style={{ display: 'grid', gap: '1rem' }}>
-          <div className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Nuevo plato con IA</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '0.75rem' }}>
-              Escribe el nombre. Gemini propone descripción e insumos; después puedes ajustar la receta.
-            </p>
-            <form onSubmit={handleCrearPlato} style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
-              <input className="input-field" value={nuevoPlato} onChange={event => setNuevoPlato(event.target.value)} placeholder="Nombre del plato" required />
-              <input className="input-field" value={descripcionPlato} onChange={event => setDescripcionPlato(event.target.value)} placeholder="Descripción breve" />
-              {(sugerenciaStatus || sugerenciaError || recetaSugerida.length > 0) && (
-                <div style={{ border: '1px solid #dbeafe', borderRadius: '8px', padding: '0.85rem', background: sugerenciaError ? '#fef2f2' : 'linear-gradient(135deg, #eff6ff, #f7fee7)', display: 'grid', gap: '0.7rem' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <div className={sugerenciaEnCurso ? 'ai-robot-icon is-thinking' : 'ai-robot-icon'}>
-                      <Bot size={22} />
-                      {sugerenciaEnCurso && (
-                        <>
-                          <span className="ai-gear ai-gear-one" />
-                          <span className="ai-gear ai-gear-two" />
-                        </>
-                      )}
-                    </div>
-                    <div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: sugerenciaError ? '#991b1b' : '#075985', fontWeight: 800, fontSize: '0.86rem' }}>
-                        <Sparkles size={14} /> Agente IA de recetas
-                      </span>
-                      <p style={{ color: sugerenciaError ? '#991b1b' : 'var(--text-primary)', fontSize: '0.88rem', marginTop: '0.25rem' }}>
-                        {sugerenciaError || sugerenciaStatus}
-                      </p>
-                    </div>
-                  </div>
-                  {recetaSugerida.length > 0 && (
-                    <div style={{ display: 'grid', gap: '0.35rem' }}>
-                      {recetaSugerida.map(item => (
-                        <div key={item.insumo_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 28px', gap: '0.45rem', alignItems: 'center', fontSize: '0.82rem' }}>
-                          <span>{item.insumo.nombre}</span>
-                          <strong>{item.cantidad_por_porcion} {item.unidad_medida}</strong>
-                          <button
-                            className="btn-secondary"
-                            type="button"
-                            onClick={() => setRecetaSugerida(current => current.filter(sugerido => sugerido.insumo_id !== item.insumo_id))}
-                            style={{ padding: '0.2rem' }}
-                            aria-label={`Quitar ${item.insumo.nombre}`}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <button className="btn-secondary" type="submit" disabled={sugerenciaEnCurso} style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                <Plus size={16} /> {sugerenciaEnCurso ? 'Preparando plato' : 'Crear plato'}
-              </button>
-            </form>
-          </div>
-
-          <div className="card" style={{ padding: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1rem', marginBottom: '0.35rem' }}>Editar receta base</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-                  Elige un plato del catálogo y define cuánto consume una porción.
-                </p>
-              </div>
-              <span style={{ borderRadius: '999px', padding: '0.3rem 0.55rem', background: '#eff6ff', color: '#075985', fontSize: '0.76rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                Por porción
-              </span>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Plato que quieres editar</label>
-              <select
-                className="input-field"
-                value={platoDetalle?.id || ''}
-                onChange={event => setSelectedPlatoDetalleId(Number(event.target.value))}
-              >
-                {platos.map(plato => <option key={plato.id} value={plato.id}>{plato.nombre}</option>)}
-              </select>
-            </div>
-
-            <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.85rem', background: '#f8fafc', marginBottom: '1rem' }}>
-              <strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '1rem' }}>{platoDetalle?.nombre || 'Sin plato seleccionado'}</strong>
-              <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.25rem' }}>
-                {platoDetalle?.descripcion || 'Sin descripción registrada.'}
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
-              {platoDetalle?.receta?.length ? platoDetalle.receta.map(item => (
-                <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 116px 34px', gap: '0.5rem', alignItems: 'center', fontSize: '0.9rem' }}>
-                  <span>{item.insumo.nombre}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <input
-                      className="input-field"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      defaultValue={item.cantidad_por_porcion}
-                      disabled={editingRecetaId === item.id}
-                      onBlur={event => handleActualizarRecetaCantidad(item, Number(event.target.value))}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          event.currentTarget.blur();
-                        }
-                      }}
-                      aria-label={`Cantidad de ${item.insumo.nombre}`}
-                      style={{ marginTop: 0, height: '38px', padding: '0.45rem 0.5rem', textAlign: 'right' }}
-                    />
-                    <strong style={{ minWidth: '34px' }}>{item.unidad_medida}</strong>
-                  </div>
-                  <button className="btn-secondary" onClick={() => handleEliminarReceta(item.id)} style={{ padding: '0.25rem' }} type="button">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              )) : (
-                <p style={{ color: 'var(--text-muted)' }}>Receta pendiente.</p>
-              )}
-            </div>
-
-            <form onSubmit={handleAgregarReceta} style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: '0.75rem', alignItems: 'end' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Insumo</label>
-                <select className="input-field" value={recetaInsumoId} onChange={event => setRecetaInsumoId(Number(event.target.value))}>
-                  {insumos.map(insumo => <option key={insumo.id} value={insumo.id}>{insumo.nombre} ({insumo.unidad_medida})</option>)}
-                </select>
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Cant.</label>
-                <input className="input-field" type="number" min="0" step="0.01" value={recetaCantidad} onChange={event => setRecetaCantidad(Number(event.target.value))} />
-              </div>
-              <button className="btn-primary" type="submit" style={{ gridColumn: '1 / -1' }}>
-                Agregar a receta
-              </button>
-            </form>
-          </div>
-
           <div className="card" style={{ padding: '1rem' }}>
             <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Requerimiento semanal</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '0.75rem' }}>Suma desayuno, almuerzo y cena de la semana seleccionada.</p>

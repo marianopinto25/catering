@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, Camera, Clock, Edit3, Plus, RefreshCw, Save, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { Bot, Camera, Check, Clock, Edit3, Plus, RefreshCw, Save, Search, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '@core/AuthContext';
 
 interface Insumo {
@@ -11,6 +11,7 @@ interface Insumo {
 
 interface RecetaItem {
   id: number;
+  insumo_id?: number;
   cantidad_por_porcion: number;
   unidad_medida: string;
   insumo: Insumo;
@@ -21,6 +22,19 @@ interface Plato {
   nombre: string;
   descripcion?: string | null;
   receta: RecetaItem[];
+}
+
+interface RecetaSugeridaItem {
+  insumo_id: number;
+  cantidad_por_porcion: number;
+  unidad_medida: string;
+  insumo: Insumo;
+}
+
+interface PlatoSuggestion {
+  descripcion: string;
+  fuente?: string;
+  receta: RecetaSugeridaItem[];
 }
 
 interface RecetaPasos {
@@ -37,15 +51,27 @@ interface RecetaPasos {
 const RecetasPage: React.FC = () => {
   const { token } = useAuth();
   const [platos, setPlatos] = useState<Plato[]>([]);
+  const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [selectedPlato, setSelectedPlato] = useState<Plato | null>(null);
+  const [basePlatoId, setBasePlatoId] = useState<number | ''>('');
   const [recetaPasos, setRecetaPasos] = useState<RecetaPasos | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [savingRecipe, setSavingRecipe] = useState(false);
+  const [savingBaseRecipe, setSavingBaseRecipe] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState(false);
   const [draftRecipe, setDraftRecipe] = useState<RecetaPasos | null>(null);
   const [error, setError] = useState('');
+  const [baseMessage, setBaseMessage] = useState('');
   const [query, setQuery] = useState('');
+  const [insumoQuery, setInsumoQuery] = useState('');
+  const [selectedInsumos, setSelectedInsumos] = useState<number[]>([]);
+  const [ingredientQuantities, setIngredientQuantities] = useState<Record<number, number>>({});
+  const [nuevoPlato, setNuevoPlato] = useState('');
+  const [descripcionPlato, setDescripcionPlato] = useState('');
+  const [recetaSugerida, setRecetaSugerida] = useState<PlatoSuggestion | null>(null);
+  const [sugerenciaStatus, setSugerenciaStatus] = useState('');
+  const [sugerenciaError, setSugerenciaError] = useState('');
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const authHeaders = useMemo(() => ({
@@ -59,11 +85,48 @@ const RecetasPage: React.FC = () => {
     return platos.filter(plato => plato.nombre.toLowerCase().includes(normalized));
   }, [platos, query]);
 
+  const basePlato = useMemo(() => (
+    platos.find(plato => plato.id === Number(basePlatoId)) || null
+  ), [platos, basePlatoId]);
+
+  const recetaBaseUnica = useMemo(() => {
+    const map = new Map<number, RecetaItem>();
+    for (const item of basePlato?.receta || []) {
+      const key = item.insumo_id || item.insumo.id;
+      if (!map.has(key)) map.set(key, { ...item, insumo_id: key });
+    }
+    return Array.from(map.values());
+  }, [basePlato]);
+
+  const filteredInsumos = useMemo(() => {
+    const normalized = insumoQuery.trim().toLowerCase();
+    const usados = new Set(recetaBaseUnica.map(item => item.insumo_id || item.insumo.id));
+    return insumos
+      .filter(insumo => !usados.has(insumo.id))
+      .filter(insumo => !normalized || `${insumo.nombre} ${insumo.unidad_medida}`.toLowerCase().includes(normalized));
+  }, [insumos, insumoQuery, recetaBaseUnica]);
+
   const fetchPlatos = async () => {
-    setLoading(true);
     const res = await fetch('/api/platos', { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setPlatos(await res.json());
-    setLoading(false);
+    if (res.ok) {
+      const data = await res.json();
+      setPlatos(data);
+      if (!basePlatoId && data[0]) setBasePlatoId(data[0].id);
+      return data as Plato[];
+    }
+    return platos;
+  };
+
+  const fetchInsumos = async () => {
+    const res = await fetch('/api/insumos', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setInsumos(await res.json());
+  };
+
+  const refreshPlatosKeepingSelection = async () => {
+    const data = await fetchPlatos();
+    if (basePlatoId && !data.some(plato => plato.id === Number(basePlatoId)) && data[0]) {
+      setBasePlatoId(data[0].id);
+    }
   };
 
   const openRecipe = async (plato: Plato, regenerate = false) => {
@@ -152,8 +215,190 @@ const RecetasPage: React.FC = () => {
     }
   };
 
+  const handleSugerirPlato = async () => {
+    const nombre = nuevoPlato.trim();
+    if (!nombre) {
+      setSugerenciaError('Escribe el nombre del plato primero.');
+      return;
+    }
+
+    setSugerenciaStatus('Gemini está sugiriendo insumos...');
+    setSugerenciaError('');
+    setRecetaSugerida(null);
+
+    try {
+      const res = await fetch(`/api/platos/sugerir?nombre=${encodeURIComponent(nombre)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo sugerir el plato');
+      setDescripcionPlato(data.descripcion || descripcionPlato);
+      setRecetaSugerida(data);
+      setSugerenciaStatus('Sugerencia lista. Revísala antes de guardar.');
+    } catch (err: any) {
+      setSugerenciaError(err.message || 'No se pudo sugerir el plato');
+      setSugerenciaStatus('');
+    }
+  };
+
+  const updateRecetaSugerida = (insumoId: number, cantidad: number) => {
+    setRecetaSugerida(current => current ? {
+      ...current,
+      receta: current.receta.map(item => item.insumo_id === insumoId ? { ...item, cantidad_por_porcion: cantidad } : item)
+    } : current);
+  };
+
+  const removeRecetaSugerida = (insumoId: number) => {
+    setRecetaSugerida(current => current ? {
+      ...current,
+      receta: current.receta.filter(item => item.insumo_id !== insumoId)
+    } : current);
+  };
+
+  const handleCrearPlato = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const nombre = nuevoPlato.trim();
+    if (!nombre) return;
+
+    setSugerenciaStatus('Guardando plato...');
+    setSugerenciaError('');
+
+    try {
+      const res = await fetch('/api/platos', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          nombre,
+          descripcion: descripcionPlato || recetaSugerida?.descripcion || '',
+          receta: recetaSugerida?.receta || []
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar el plato');
+      setNuevoPlato('');
+      setDescripcionPlato('');
+      setRecetaSugerida(null);
+      setSugerenciaStatus('Plato guardado en recetas.');
+      await refreshPlatosKeepingSelection();
+      setBasePlatoId(data.id);
+    } catch (err: any) {
+      setSugerenciaError(err.message || 'No se pudo guardar el plato');
+      setSugerenciaStatus('');
+    }
+  };
+
+  const toggleInsumo = (insumo: Insumo) => {
+    setSelectedInsumos(current => {
+      if (current.includes(insumo.id)) return current.filter(id => id !== insumo.id);
+      return [...current, insumo.id];
+    });
+    setIngredientQuantities(current => ({
+      ...current,
+      [insumo.id]: current[insumo.id] || 0
+    }));
+  };
+
+  const handleAgregarRecetaMultiple = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!basePlato || selectedInsumos.length === 0) return;
+
+    const items = selectedInsumos
+      .map(id => {
+        const insumo = insumos.find(item => item.id === id);
+        return insumo ? {
+          insumo,
+          cantidad: Number(ingredientQuantities[id] || 0)
+        } : null;
+      })
+      .filter((item): item is { insumo: Insumo; cantidad: number } => Boolean(item && item.cantidad > 0));
+
+    if (items.length === 0) {
+      setBaseMessage('Selecciona insumos y escribe cantidades mayores a cero.');
+      return;
+    }
+
+    setSavingBaseRecipe(true);
+    setBaseMessage('');
+
+    try {
+      for (const item of items) {
+        const res = await fetch(`/api/platos/${basePlato.id}/receta`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({
+            insumo_id: item.insumo.id,
+            cantidad_por_porcion: item.cantidad,
+            unidad_medida: item.insumo.unidad_medida
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `No se pudo guardar ${item.insumo.nombre}`);
+      }
+      setSelectedInsumos([]);
+      setIngredientQuantities({});
+      setInsumoQuery('');
+      await refreshPlatosKeepingSelection();
+      setBaseMessage('Receta base actualizada.');
+    } catch (err: any) {
+      setBaseMessage(err.message || 'No se pudo actualizar la receta base.');
+    } finally {
+      setSavingBaseRecipe(false);
+    }
+  };
+
+  const handleActualizarRecetaCantidad = async (item: RecetaItem, cantidad: number) => {
+    if (!basePlato || cantidad <= 0) return;
+
+    setSavingBaseRecipe(true);
+    setBaseMessage('');
+    try {
+      const res = await fetch(`/api/platos/${basePlato.id}/receta/${item.id}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({
+          cantidad_por_porcion: cantidad,
+          unidad_medida: item.unidad_medida
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo actualizar el insumo');
+      await refreshPlatosKeepingSelection();
+      setBaseMessage('Cantidad actualizada.');
+    } catch (err: any) {
+      setBaseMessage(err.message || 'No se pudo actualizar el insumo.');
+    } finally {
+      setSavingBaseRecipe(false);
+    }
+  };
+
+  const handleEliminarReceta = async (item: RecetaItem) => {
+    if (!basePlato) return;
+
+    setSavingBaseRecipe(true);
+    setBaseMessage('');
+    try {
+      const res = await fetch(`/api/platos/${basePlato.id}/receta/${item.id}`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo quitar el insumo');
+      await refreshPlatosKeepingSelection();
+      setBaseMessage('Insumo quitado de la receta.');
+    } catch (err: any) {
+      setBaseMessage(err.message || 'No se pudo quitar el insumo.');
+    } finally {
+      setSavingBaseRecipe(false);
+    }
+  };
+
   useEffect(() => {
-    fetchPlatos();
+    const load = async () => {
+      setLoading(true);
+      await Promise.all([fetchPlatos(), fetchInsumos()]);
+      setLoading(false);
+    };
+    load();
   }, [token]);
 
   return (
@@ -163,16 +408,188 @@ const RecetasPage: React.FC = () => {
           <Utensils size={26} /> Recetas
         </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-          Consulta la preparación paso a paso de cada plato. Gemini la genera una vez y queda guardada para futuras consultas.
+          Crea platos, define varios insumos base por porción y consulta el paso a paso operativo de cocina.
         </p>
       </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1rem', alignItems: 'start', marginBottom: '1rem' }}>
+        <section className="card" style={{ padding: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '0.9rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Nuevo plato</h3>
+              <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
+                Guarda el plato y su receta base inicial.
+              </p>
+            </div>
+            <Sparkles size={20} color="#0f766e" />
+          </div>
+
+          <form onSubmit={handleCrearPlato} style={{ display: 'grid', gap: '0.75rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Nombre del plato</label>
+              <input className="input-field" value={nuevoPlato} onChange={event => setNuevoPlato(event.target.value)} placeholder="Ej: Majadito de pollo" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Descripción</label>
+              <textarea className="input-field" value={descripcionPlato} onChange={event => setDescripcionPlato(event.target.value)} rows={3} style={{ resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <button className="btn-secondary" type="button" onClick={handleSugerirPlato} style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center' }}>
+                <Bot size={16} /> Sugerir con IA
+              </button>
+              <button className="btn-primary" type="submit" style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center' }}>
+                <Save size={16} /> Guardar plato
+              </button>
+            </div>
+          </form>
+
+          {(sugerenciaStatus || sugerenciaError) && (
+            <p style={{ color: sugerenciaError ? '#b91c1c' : 'var(--text-muted)', marginTop: '0.75rem', fontWeight: 700 }}>
+              {sugerenciaError || sugerenciaStatus}
+            </p>
+          )}
+
+          {recetaSugerida && (
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem', display: 'grid', gap: '0.65rem' }}>
+              <strong>Receta sugerida</strong>
+              {recetaSugerida.receta.map(item => (
+                <div key={item.insumo_id} style={{ display: 'grid', gridTemplateColumns: '1fr 96px 38px', gap: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.insumo.nombre} ({item.unidad_medida})</span>
+                  <input
+                    className="input-field"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={item.cantidad_por_porcion}
+                    onChange={event => updateRecetaSugerida(item.insumo_id, Number(event.target.value))}
+                    style={{ marginTop: 0 }}
+                  />
+                  <button className="btn-secondary" type="button" onClick={() => removeRecetaSugerida(item.insumo_id)} style={{ padding: '0.45rem' }} aria-label="Quitar insumo sugerido">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '0.9rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Editar receta base</h3>
+              <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
+                Elige un plato y agrega varios insumos por porción en una sola pasada.
+              </p>
+            </div>
+            <span style={{ borderRadius: 999, padding: '0.35rem 0.65rem', background: '#ecfeff', color: '#155e75', fontWeight: 800, fontSize: '0.78rem' }}>
+              Por porción
+            </span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Plato</label>
+            <select className="input-field" value={basePlatoId} onChange={event => setBasePlatoId(Number(event.target.value))}>
+              {platos.map(plato => <option key={plato.id} value={plato.id}>{plato.nombre}</option>)}
+            </select>
+          </div>
+
+          {basePlato && (
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem 0.85rem', background: '#f8fafc', fontWeight: 800 }}>
+                  Insumos actuales de {basePlato.nombre}
+                </div>
+                {recetaBaseUnica.length === 0 ? (
+                  <p style={{ padding: '0.85rem', color: 'var(--text-muted)' }}>Todavía no hay insumos cargados para este plato.</p>
+                ) : (
+                  <div style={{ display: 'grid', overflowX: 'auto' }}>
+                    {recetaBaseUnica.map(item => (
+                      <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 116px 72px 38px', gap: '0.55rem', alignItems: 'center', padding: '0.7rem 0.85rem', borderTop: '1px solid var(--border-color)', minWidth: '420px' }}>
+                        <strong>{item.insumo.nombre}</strong>
+                        <input
+                          className="input-field"
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          defaultValue={item.cantidad_por_porcion}
+                          onBlur={event => handleActualizarRecetaCantidad(item, Number(event.target.value))}
+                          style={{ marginTop: 0 }}
+                        />
+                        <span style={{ fontWeight: 800 }}>{item.unidad_medida}</span>
+                        <button className="btn-secondary" type="button" onClick={() => handleEliminarReceta(item)} disabled={savingBaseRecipe} style={{ padding: '0.45rem' }} aria-label="Quitar insumo">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handleAgregarRecetaMultiple} style={{ display: 'grid', gap: '0.75rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Agregar insumos</label>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      className="input-field"
+                      value={insumoQuery}
+                      onChange={event => setInsumoQuery(event.target.value)}
+                      placeholder="Buscar insumo"
+                      style={{ marginTop: 0, paddingLeft: '2.4rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', maxHeight: '260px', overflowY: 'auto' }}>
+                  {filteredInsumos.length === 0 ? (
+                    <p style={{ padding: '0.85rem', color: 'var(--text-muted)' }}>No hay insumos disponibles para agregar.</p>
+                  ) : filteredInsumos.map(insumo => {
+                    const checked = selectedInsumos.includes(insumo.id);
+                    return (
+                      <label key={insumo.id} style={{ display: 'grid', gridTemplateColumns: checked ? '24px 1fr 110px' : '24px 1fr', gap: '0.6rem', alignItems: 'center', padding: '0.7rem 0.85rem', borderTop: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleInsumo(insumo)} />
+                        <span>
+                          <strong>{insumo.nombre}</strong>
+                          <small style={{ display: 'block', color: 'var(--text-muted)' }}>{insumo.unidad_medida}</small>
+                        </span>
+                        {checked && (
+                          <input
+                            className="input-field"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={ingredientQuantities[insumo.id] || ''}
+                            onChange={event => setIngredientQuantities(current => ({ ...current, [insumo.id]: Number(event.target.value) }))}
+                            placeholder="Cant."
+                            onClick={event => event.stopPropagation()}
+                            style={{ marginTop: 0 }}
+                          />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ color: baseMessage.includes('No se') || baseMessage.includes('Selecciona') ? '#b91c1c' : 'var(--text-muted)', fontWeight: 700 }}>
+                    {baseMessage || `${selectedInsumos.length} insumos seleccionados`}
+                  </span>
+                  <button className="btn-primary" type="submit" disabled={savingBaseRecipe || selectedInsumos.length === 0} style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center' }}>
+                    <Check size={16} /> {savingBaseRecipe ? 'Guardando...' : 'Agregar a receta'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
+      </div>
 
       <section className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <input
           className="input-field"
           value={query}
           onChange={event => setQuery(event.target.value)}
-          placeholder="Buscar plato"
+          placeholder="Buscar plato para ver el paso a paso"
           style={{ marginTop: 0 }}
         />
       </section>
@@ -191,7 +608,7 @@ const RecetasPage: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  {plato.receta?.length || 0} insumos base
+                  {new Set((plato.receta || []).map(item => item.insumo_id || item.insumo.id)).size} insumos base
                 </span>
                 <button className="btn-primary" type="button" onClick={() => openRecipe(plato)}>
                   Ver receta
