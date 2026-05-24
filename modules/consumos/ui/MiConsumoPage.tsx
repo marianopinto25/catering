@@ -36,6 +36,7 @@ const MiConsumoPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState('');
+  const [successPopup, setSuccessPopup] = useState(false);
 
   const authHeaders = useMemo(() => ({
     'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const MiConsumoPage: React.FC = () => {
         setTurno(qrTurno);
         setMetodo('SESION');
         setCodigoQr('');
-        setMessage(`QR del día leído para ${qrTurno}.`);
+        registrar({ turnoValue: qrTurno, metodoValue: 'SESION', auto: true });
         return;
       }
     } catch {
@@ -75,7 +76,7 @@ const MiConsumoPage: React.FC = () => {
     }
     setMetodo('QR');
     setCodigoQr(value);
-    setMessage('Código QR leído. Ahora puedes registrar tu consumo.');
+    registrar({ metodoValue: 'QR', codigoQrValue: value, auto: true });
   };
 
   const stopScanner = async () => {
@@ -210,7 +211,16 @@ const MiConsumoPage: React.FC = () => {
     }
   };
 
-  const registrar = async () => {
+  async function registrar(options?: {
+    turnoValue?: string;
+    metodoValue?: 'SESION' | 'QR';
+    codigoQrValue?: string;
+    auto?: boolean;
+  }) {
+    const nextTurno = options?.turnoValue || turno;
+    const nextMetodo = options?.metodoValue || metodo;
+    const nextCodigoQr = options?.codigoQrValue || codigoQr;
+
     setLoading(true);
     setError('');
     setMessage('');
@@ -219,21 +229,23 @@ const MiConsumoPage: React.FC = () => {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          turno,
-          metodo,
-          codigo_qr: metodo === 'QR' ? codigoQr.trim() : undefined
+          turno: nextTurno,
+          metodo: nextMetodo,
+          codigo_qr: nextMetodo === 'QR' ? nextCodigoQr.trim() : undefined
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo registrar el consumo');
       setConsumo(data);
-      setMessage('Consumo registrado. Firma para completar el registro.');
+      setMessage(options?.auto ? 'Consumo registrado desde QR.' : 'Consumo registrado. Firma para completar el registro.');
+      setSuccessPopup(true);
+      window.setTimeout(() => setSuccessPopup(false), 1800);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const guardarFirma = async (firmaBase64: string) => {
     if (!consumo) return;
@@ -343,10 +355,31 @@ const MiConsumoPage: React.FC = () => {
         {error && <p className="error-text">{error}</p>}
         {message && <p style={{ color: firmado ? 'var(--success-color)' : 'var(--text-primary)', fontWeight: 800 }}>{message}</p>}
 
-        <button className="btn-primary" type="button" onClick={registrar} disabled={loading || Boolean(consumo) || qrRequired} style={{ width: 'fit-content' }}>
+        <button className="btn-primary" type="button" onClick={() => registrar()} disabled={loading || Boolean(consumo) || qrRequired} style={{ width: 'fit-content' }}>
           <ClipboardCheck size={16} /> {loading ? 'Registrando...' : consumo ? 'Consumo registrado' : 'Registrar consumo'}
         </button>
       </section>
+
+      {successPopup && (
+        <motion.div
+          className="consumo-success-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="consumo-success-card"
+            initial={{ scale: 0.92, y: 12 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 18 }}
+          >
+            <div className="consumo-success-check">
+              <CheckCircle2 size={54} />
+            </div>
+            <h3>Consumo registrado!</h3>
+          </motion.div>
+        </motion.div>
+      )}
 
       {consumo && (
         <section className="card" style={{ display: 'grid', gap: '1rem' }}>
